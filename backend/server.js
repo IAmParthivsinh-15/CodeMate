@@ -3,6 +3,9 @@ import dotenv from "dotenv";
 import cors from "cors";
 import connectDb from "./config/db.js";
 import authRoutes from "./routes/auth.js";
+import gameRoutes from "./routes/game.js";
+import { getBestMoveHandler } from "./controller/testEngine.js"
+
 import cookieParser from 'cookie-parser';
 
 
@@ -16,6 +19,8 @@ const PORT = process.env.PORT;
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/game",gameRoutes);
+app.get("/test",getBestMoveHandler)
 
 connectDb();
 app.listen(PORT, () => {
