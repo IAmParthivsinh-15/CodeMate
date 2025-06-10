@@ -1,7 +1,3 @@
-Of course! Here is a powerful and clean README.md file for your CodeMate project, crafted from the details you provided.
-
-Just copy and paste the code below into your readme.md file at the root of your project.
-
 # CodeMate ♟️<>💻
 
 > Where Chess Strategy Meets Coding Prowess.
