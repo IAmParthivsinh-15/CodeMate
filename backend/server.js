@@ -22,6 +22,10 @@ app.use("/api/auth", authRoutes);
 app.use("/api/game",gameRoutes);
 app.get("/test",getBestMoveHandler)
 
+app.get("/", (req, res) => {
+  res.send("Welcome to the Chess Game API");
+});
+
 connectDb();
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

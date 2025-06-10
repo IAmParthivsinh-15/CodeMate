@@ -69,7 +69,7 @@ export const endGame = async (req, res) => {
     const game = await GameSession.findByIdAndUpdate(
       gameId,
       {
-        status: result,
+        status: status,
         endedAt: Date.now(),
       },
       { new: true }

@@ -19,6 +19,8 @@ class ChessEngine {
     const executableName = process.platform === "win32" ? "stockfish.exe" : "stockfish";
     const enginePath = path.join(process.cwd(), "engine", executableName);
 
+    console.log("os platform:", process.platform);
+
     if (!fs.existsSync(enginePath)) {
       throw new Error(`Stockfish engine not found at ${enginePath}`);
     }

@@ -1,6 +1,6 @@
 FROM node:18
 
-WORKDIR /
+WORKDIR /app
 
 COPY package*.json ./
 RUN npm install
@@ -9,4 +9,4 @@ COPY . .
 
 RUN chmod +x ./engine/stockfish
 
-CMD ["npm", "run", "dev"]
+CMD ["npm", "start"]
