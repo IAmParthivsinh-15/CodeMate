@@ -6,11 +6,11 @@ const codeExecutor = new CodeExecutor();
 
 export const executeCode = async (req, res) => {
   try {
-    const { code, language, difficulty } = req.body;
+    const { code, language, questionId } = req.body;
 
-    if (!code || !language || !difficulty) {
+    if (!code || !language || !questionId) {
       return res.status(400).json({
-        message: "Code, language and difficulty are required",
+        message: "Code, language and questionId are required",
       });
     }
 
@@ -24,25 +24,19 @@ export const executeCode = async (req, res) => {
       });
     }
 
-    // Get random question for given difficulty
-    const question = await CodingQuestion.aggregate([
-      { $match: { difficulty } },
-      { $sample: { size: 1 } },
-    ]);
-
-    if (!question || question.length === 0) {
+    // Get question by ID
+    const question = await CodingQuestion.findById(questionId);
+    if (!question) {
       return res.status(404).json({
-        message: `No questions found for ${difficulty} difficulty`,
+        message: "Question not found",
       });
     }
-
-    const selectedQuestion = question[0];
 
     // Execute code with samples first
     console.log("Running sample test cases...");
     const sampleResults = await codeExecutor.executeCode(
       code,
-      selectedQuestion.samples,
+      question.samples,
       language
     );
 
@@ -56,24 +50,24 @@ export const executeCode = async (req, res) => {
       console.log("Running hidden test cases...");
       testCaseResults = await codeExecutor.executeCode(
         code,
-        selectedQuestion.testcases,
+        question.testcases,
         language
       );
     }
 
     // Calculate score
     const totalTests = testCaseResults.length;
-    const passedTests = testCaseResults.filter(
-      (result) => result.passed
-    ).length;
-    const score = Math.round((passedTests / totalTests) * 100);
+    const passedTests = testCaseResults.filter((result) => result.passed)
+      .length;
+    const score =
+      totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0;
 
     // Save submission
     await saveSubmission(req.user._id, {
-      questionId: selectedQuestion._id,
+      questionId: question._id,
       code,
       language,
-      difficulty,
+      difficulty: question.difficulty,
       score,
       samples: sampleResults,
       testCases: testCaseResults.map((result) => ({
@@ -86,11 +80,16 @@ export const executeCode = async (req, res) => {
     res.status(200).json({
       message: "Code executed successfully",
       question: {
-        title: selectedQuestion.title,
-        description: selectedQuestion.description,
-        difficulty: selectedQuestion.difficulty,
-        functionName: selectedQuestion.functionName,
-        constraints: selectedQuestion.constraints,
+        title: question.title,
+        description: question.description,
+        difficulty: question.difficulty,
+        inputFormat: question.inputFormat,
+        outputFormat: question.outputFormat,
+        constraints: question.constraints,
+        samples: question.samples.map((s) => ({
+          input: s.input,
+          output: s.output,
+        })),
       },
       execution: {
         samples: sampleResults,
@@ -108,6 +107,7 @@ export const executeCode = async (req, res) => {
     console.error("Code execution error:", error);
     res.status(500).json({
       message: "Code execution failed",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };

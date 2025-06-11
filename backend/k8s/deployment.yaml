@@ -56,6 +56,26 @@ spec:
                 secretKeyRef:
                   name: codemate-backend-secrets
                   key: REFRESH_TOKEN_EXPIRES_IN
+            - name: JUDGE0_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: codemate-backend-secrets
+                  key: JUDGE0_API_KEY
+            - name: JUDGE0_APP
+              valueFrom:
+                secretKeyRef:
+                  name: codemate-backend-secrets
+                  key: JUDGE0_APP
+            - name: REQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: codemate-backend-secrets
+                  key: REQ_URL
+            - name: JUDGE0_API_URL
+              valueFrom:
+                secretKeyRef:
+                  name: codemate-backend-secrets
+                  key: JUDGE0_API_URL
           volumeMounts:
             - name: stockfish-engine
               mountPath: /usr/src/app/engine
