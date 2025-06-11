@@ -1,7 +1,59 @@
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema(
-  {
+const submissionSchema = new mongoose.Schema({
+  questionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'CodingQuestion',
+    required: true
+  },
+  code: {
+    type: String,
+    required: true
+  },
+  language: {
+    type: String,
+    required: true
+  },
+  difficulty: {
+    type: String,
+    required: true
+  },
+  score: {
+    type: Number,
+    required: true,
+    min: 0,
+    max: 100,
+    default: 0
+  },
+  samples: [{
+    input: String,
+    output: String,
+    expected: String,
+    status: String,
+    time: String,
+    memory: Number,
+    error: String,
+    passed: Boolean
+  }],
+  testCases: [{
+    input: String,
+    output: String,
+    expected: String,
+    status: String,
+    time: String,
+    memory: Number,
+    error: String,
+    passed: Boolean
+  }],
+  executedAt: {
+    type: Date,
+    default: Date.now
+  }
+}, {
+  timestamps: true
+});
+
+const userSchema = new mongoose.Schema({
     username: {
       type: String,
       required: true,
@@ -36,10 +88,10 @@ const userSchema = new mongoose.Schema(
         expires: Date,
       },
     ],
+    submissions: [submissionSchema]
   },
   {
-    timestamps: true,
-    versionKey: false,
+    timestamps: true
   }
 );
 

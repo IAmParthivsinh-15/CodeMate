@@ -1,5 +1,5 @@
 import express from "express";
-import protectRoutes from "../middlewares/auth.js";
+import { protectRoutes } from "../middlewares/auth.js";
 import {
   login,
   register,
