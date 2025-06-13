@@ -1,6 +1,6 @@
 # CodeMate Backend
 
-A powerful chess gaming backend built with Node.js, Express, MongoDB, and Stockfish engine.
+A comprehensive learning platform combining chess gaming and coding challenges, built with Node.js, Express, MongoDB, Stockfish engine, and Google's Gemini AI.
 
 ## 🚀 Technology Stack
 
@@ -8,6 +8,7 @@ A powerful chess gaming backend built with Node.js, Express, MongoDB, and Stockf
 - **Framework**: Express.js
 - **Database**: MongoDB
 - **Chess Engine**: Stockfish
+- **AI Assistant**: Google Gemini Pro
 - **Authentication**: JWT (Access & Refresh Tokens)
 - **Container**: Docker
 - **Orchestration**: Kubernetes
@@ -17,201 +18,184 @@ A powerful chess gaming backend built with Node.js, Express, MongoDB, and Stockf
 ```
 backend/
 ├── config/
-│   └── db.js           # MongoDB connection configuration
+│   └── db.js               # MongoDB connection configuration
 ├── controller/
-│   ├── auth.js         # Authentication controllers
-│   ├── game.js         # Game logic controllers
-│   └── testEngine.js   # Chess engine test controllers
+│   ├── admin.js            # Admin controllers
+│   ├── auth.js             # Authentication controllers
+│   ├── game.js             # Game logic controllers
+│   ├── gameAnalysis.js     # Game analysis controllers
+│   ├── codingQuestions.js  # Coding problems controllers
+│   └── codeExecution.js    # Code execution controllers
 ├── engine/
-│   ├── stockfish       # Linux Stockfish executable
-│   └── stockfish.exe   # Windows Stockfish executable
+│   ├── stockfish           # Linux Stockfish executable
+│   └── stockfish.exe       # Windows Stockfish executable
 ├── k8s/
-│   ├── configmap.yaml  # Kubernetes ConfigMap
-│   ├── deployment.yaml # Kubernetes Deployment
-│   ├── secret.yaml     # Kubernetes Secrets
-│   └── service.yaml    # Kubernetes Service
-├── middlewares/
-│   └── auth.js         # Authentication middleware
+│   ├── configmap.yaml      # Kubernetes ConfigMap
+│   ├── deployment.yaml     # Kubernetes Deployment
+│   ├── secret.yaml         # Kubernetes Secrets
+│   └── service.yaml        # Kubernetes Service
 ├── model/
-│   └── user.js         # User model schema
+│   ├── admin.js           # Admin model
+│   ├── codingQuestion.js  # Coding question model
+│   ├── gameAnalysis.js    # Game analysis model
+│   ├── gameSession.js     # Game session model
+│   └── user.js           # User model
 ├── routes/
-│   ├── auth.js         # Authentication routes
-│   └── game.js         # Game routes
+│   ├── admin.js          # Admin routes
+│   ├── auth.js          # Authentication routes
+│   ├── code.js         # Code execution routes
+│   ├── game.js        # Game routes
+│   └── gameAnalysis.js # Analysis routes
 ├── services/
-│   └── chessEngine.js  # Chess engine service
-├── utils/
-│   └── genToken.js     # Token generation utilities
-├── Dockerfile          # Docker configuration
-└── server.js           # Main application entry
+│   ├── chessEngine.js    # Chess engine service
+│   ├── codeExecutor.js   # Code execution service
+│   └── geminiService.js  # AI analysis service
+└── server.js             # Main application entry
 ```
 
-## 🔑 Authentication
+## 🎮 Chess Features
 
-### JWT Token System
-- Access Token: 15 minutes expiry
-- Refresh Token: 7 days expiry
-- Secure HTTP-only cookies
+### Game Analysis
+- Real-time position evaluation
+- Move accuracy calculation
+- Best move suggestions
+- AI-powered game reports
+- Historical analysis storage
 
-### API Endpoints
+### Difficulty Levels
+- Beginner (ELO ~1000)
+- Intermediate (ELO ~1500)
+- Advanced (ELO ~1800)
+- Master (ELO ~2100)
+- Grandmaster (ELO ~2400)
+- Legendary (ELO ~2700)
 
-#### Authentication Routes (`/api/auth`)
-```
-POST /register - Register new user
-POST /login    - User login
-POST /logout   - User logout
-POST /refresh  - Refresh access token
-GET  /me       - Get user profile
-```
+## 💻 Coding Features
 
-#### Game Routes (`/api/game`)
-```
-POST /move     - Make a chess move
-GET  /history  - Get game history
-POST /analyze  - Analyze position
-```
+### Code Execution
+- Multiple language support (JavaScript, Python, Java, C++)
+- Real-time compilation and execution
+- Test case validation
+- Performance metrics
 
-## 💾 Database Schema
+### Problem Difficulty
+- Beginner
+- Intermediate
+- Advanced
+- Master
+- Grandmaster
+- Legendary
 
-### User Model
+## 🤖 AI Integration
+
+### Game Analysis
 ```javascript
 {
-  username: String,
-  email: String,
-  password: String,
-  chessStats: {
-    gamesPlayed: Number,
-    rating: Number,
-    wins: Number,
-    losses: Number,
-    draws: Number
-  },
-  codingStats: {
-    problemsSolved: Number,
-    preferredLanguage: String
-  },
-  refreshTokens: [{
-    token: String,
-    expires: Date
-  }]
+  "summary": "Game analysis summary",
+  "strengths": ["Positional play", "Endgame technique"],
+  "weaknesses": ["Tactical awareness", "Time management"],
+  "keyInsights": [
+    {
+      "moveNumber": 15,
+      "playerMove": "e4",
+      "bestMove": "d4",
+      "explanation": "Strategic explanation"
+    }
+  ],
+  "trainingRecommendations": ["Focus areas"]
 }
 ```
 
-## 🎮 Chess Engine Integration
+## 📊 Database Schemas
 
-### Difficulty Levels
-- Beginner (depth: 5)
-- Intermediate (depth: 10)
-- Advanced (depth: 15)
-- Master (depth: 18)
-- Grandmaster (depth: 20)
-- Legendary (depth: 22)
-
-### Engine Configuration
+### Game Analysis Model
 ```javascript
-const config = {
-  beginner: { level: 0, depth: 5 },
-  intermediate: { level: 5, depth: 10 },
-  advanced: { level: 10, depth: 15 },
-  master: { level: 15, depth: 18 },
-  grandmaster: { level: 20, depth: 20 },
-  legendary: { level: 20, depth: 22 }
-};
+{
+  gameSession: ObjectId,
+  playerAccuracy: Number,
+  computerAccuracy: Number,
+  bestMoveCount: Number,
+  inaccuracies: Number,
+  mistakes: Number,
+  blunders: Number,
+  moveAnalysis: [{
+    moveNumber: Number,
+    playerMove: String,
+    bestMove: String,
+    accuracy: Number,
+    classification: String,
+    fenBefore: String,
+    fenAfter: String,
+    evaluationBefore: Number,
+    evaluationAfter: Number
+  }],
+  geminiReport: {
+    summary: String,
+    strengths: [String],
+    weaknesses: [String],
+    keyInsights: Array,
+    trainingRecommendations: [String]
+  }
+}
 ```
 
-## 🐳 Docker Configuration
+## 🔑 Environment Variables
 
-```dockerfile
-FROM node:20-slim
-WORKDIR /usr/src/app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN chmod +x ./engine/stockfish
-EXPOSE 5050
-CMD ["npm", "start"]
+Required in `.env`:
 ```
-
-Build and run:
-```bash
-docker build -t codemate-backend .
-docker run -p 5050:5050 codemate-backend
-```
-
-## ☸️ Kubernetes Configuration
-
-All Kubernetes manifests for deploying the backend are available in the [`k8s/`](./k8s) directory.
-
-### Included Manifests:
-- `configmap.yaml` – App-level configuration
-- `deployment.yaml` – Backend deployment configuration
-- `service.yaml` – Exposes backend using NodePort
-- `secrets.yaml` – Stores sensitive environment variables securely
-
-
-## 🚀 Environment Variables
-
-Required environment variables in `.env`:
-```
-PORT=5050
+PORT=port
 MONGO_URL=your_mongodb_url
-ACCESS_TOKEN_SECRET=your_access_token_secret
-REFRESH_TOKEN_SECRET=your_refresh_token_secret
-ACCESS_TOKEN_EXPIRES_IN=15m
-REFRESH_TOKEN_EXPIRES_IN=7d
+ACCESS_TOKEN_SECRET=your_secret
+REFRESH_TOKEN_SECRET=your_secret
+JUDGE0_API_URL=your_judge0_url
+JUDGE0_API_KEY=your_judge0_key
+GEMINI_API_KEY=your_gemini_key
 ```
 
-## 🏃‍♂️ Running Locally
+## 🚀 API Endpoints
+
+### Chess Routes
+```
+POST /api/game/start      - Start new game
+POST /api/game/move      - Make move
+POST /api/game/analysis  - Analyze game
+GET  /api/game/history  - Get game history
+```
+
+### Coding Routes
+```
+POST /api/code/execute    - Execute code
+GET  /api/questions      - Get coding questions
+POST /api/questions/add  - Add new question
+```
+
+## 🔄 Development
 
 1. Install dependencies:
 ```bash
 npm install
 ```
 
-2. Start the server:
+2. Setup environment:
 ```bash
-npm start
+cp .env.example .env
+# Update environment variables
 ```
 
-Server runs at `http://localhost:5050`
-
-## 🔄 API Testing
-
-Using Postman or curl:
-
-### Register User
+3. Start server:
 ```bash
-curl -X POST http://localhost:5050/api/auth/register \
--H "Content-Type: application/json" \
--d '{
-  "username": "test",
-  "email": "test@example.com",
-  "password": "password123"
-}'
+npm run dev
 ```
 
-### Get Chess Move
+## 🐳 Docker & Kubernetes
+
+Build and deploy:
 ```bash
-curl -X POST http://localhost:5050/api/test \
--H "Content-Type: application/json" \
--d '{
-  "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-  "level": "intermediate"
-}'
+# Docker
+docker build -t codemate-backend .
+docker run -p 5050:5050 codemate-backend
+
+# Kubernetes
+kubectl apply -f k8s/
 ```
-
-## 🔐 Security
-
-- CORS enabled
-- Rate limiting
-- HTTP-only cookies
-- Helmet security headers
-- Password hashing with bcrypt
-
-## 📝 Logging
-
-Console logging for:
-- API requests
-- Database operations
-- Chess engine moves
-- Authentication events
 

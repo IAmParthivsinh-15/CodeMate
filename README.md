@@ -29,6 +29,70 @@ This core loop turns every game into a dynamic test of both your logical and str
 *   **Real-time Code Evaluation**: Code submissions are planned to be evaluated instantly using the **Judge0** API, supporting multiple programming languages.
 *   **User Profiles & Analytics**: (Upcoming) Track your chess ELO, your coding problem success rate, and see detailed performance analysis.
 
+## 🎮 Chess Features
+
+### Game Analysis
+- Real-time position evaluation using Stockfish
+- Move accuracy calculation and classification
+- Best move suggestions with explanations
+- AI-powered game reports via Google Gemini
+- Historical analysis storage and replay
+
+### Difficulty Levels
+- 🌱 Beginner (ELO ~1000)
+- 📚 Intermediate (ELO ~1500)
+- 🎯 Advanced (ELO ~1800)
+- 🏆 Master (ELO ~2100)
+- 👑 Grandmaster (ELO ~2400)
+- ⚡ Legendary (ELO ~2700)
+
+## 💻 Coding Challenge System
+
+### Supported Languages
+- JavaScript/Node.js
+- Python
+- Java
+- C++
+
+### Challenge Categories
+- Arrays & Strings
+- Dynamic Programming
+- Graph Algorithms
+- Data Structures
+- Algorithmic Puzzles
+
+### Difficulty Progression
+- Each difficulty level unlocks progressively
+- Hints cost increases with difficulty
+- Special achievements for no-hint victories
+
+## 🤖 AI Integration
+
+### Chess Analysis
+```json
+{
+  "summary": "Game analysis summary",
+  "strengths": ["Positional play", "Endgame technique"],
+  "weaknesses": ["Tactical awareness", "Time management"],
+  "keyInsights": [
+    {
+      "moveNumber": 15,
+      "playerMove": "e4",
+      "bestMove": "d4",
+      "explanation": "Strategic explanation"
+    }
+  ],
+  "recommendations": ["Training suggestions"]
+}
+```
+
+### Code Analysis
+- Syntax validation
+- Time complexity analysis
+- Space complexity feedback
+- Code style recommendations
+- Alternative solution suggestions
+
 ## 📊 Project Status
 
 The project is divided into a backend service and a frontend client.
@@ -69,6 +133,38 @@ The user interface is the next major milestone.
 | **Chess AI**  | Stockfish Engine                              |
 | **Code Judge**| **Judge0** (Planned Integration)              |
 | **DevOps**    | Docker, Kubernetes                            |
+
+## 🎯 Performance Metrics
+
+### Chess Engine
+- Response time: <100ms per move
+- Evaluation depth: Up to 22 ply
+- Multi-threading support
+- Memory usage optimization
+
+### Code Execution
+- Timeout: 2s per test case
+- Memory limit: 256MB
+- Concurrent execution support
+- Sandbox environment
+
+## 🔐 Security Features
+
+- JWT-based authentication
+- Rate limiting for API endpoints
+- Input sanitization
+- Secure code execution
+- MongoDB injection prevention
+- CORS policy implementation
+
+## 📊 Analytics Dashboard (Upcoming)
+
+- Personal progress tracking
+- ELO rating history
+- Coding success rate
+- Problem-solving patterns
+- Time management analysis
+- Skill progression maps
 
 ## 🗺️ Future Roadmap
 
