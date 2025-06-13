@@ -1,5 +1,6 @@
 import User from "../model/user.js";
 import GameSession from "../model/gameSession.js";
+import ChessEngine from "../services/chessEngine.js";
 
 export const startGame = async (req, res) => {
   try {
@@ -97,4 +98,39 @@ const updateUserStats = async (userId, result) => {
   else update.$inc = { "chessStats.draws": 1 };
 
   await User.findByIdAndUpdate(userId, update);
+};
+
+export const getMoveForBot = async (req, res) => {
+  try {
+    const { gameId, fen, difficulty } = req.body;
+    if (!gameId || !fen || !difficulty) {
+      return res
+        .status(400)
+        .json({ message: "Game ID, FEN, and difficulty are required" });
+    }
+    const game = await GameSession.findById(gameId);
+    if (!game) {
+      return res.status(404).json({ message: "Game not found" });
+    }
+    const engine = new ChessEngine(difficulty);
+    const bestMove = await engine.getBestMove(fen);
+    if (!bestMove) {
+      return res
+        .status(500)
+        .json({ message: "Failed to get best move from bot" });
+    }
+    // Save the move to the game session
+    game.moves.push({ move: bestMove, fen: fen });
+    game.currentFEN = fen;
+    await game.save();
+    res.status(200).json({
+      message: "Best move retrieved successfully",
+      bestMove: bestMove,
+      currentFEN: game.currentFEN,
+      moves: game.moves,
+    });
+  } catch (error) {
+    console.error("Error getting move for bot:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 };

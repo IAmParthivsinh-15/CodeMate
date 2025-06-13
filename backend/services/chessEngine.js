@@ -171,6 +171,99 @@ class ChessEngine {
     return move === "(none)" ? null : move;
   }
 
+  async getPositionEvaluation(fen, depth = 18) {
+    return new Promise((resolve, reject) => {
+      if (!this.engine) {
+        return reject(new Error("Engine not initialized"));
+      }
+
+      let isResolved = false;
+
+      const handler = (data) => {
+        const output = data.toString();
+        console.log('Evaluation output:', output);
+
+        if (output.includes("info depth") && output.includes("score cp") && !isResolved) {
+          const match = output.match(/score cp (-?\d+)/);
+          if (match) {
+            isResolved = true;
+            cleanup();
+            resolve(parseInt(match[1]));
+          }
+        }
+      };
+
+      const cleanup = () => {
+        this.engine.stdout.removeListener("data", handler);
+      };
+
+      this.engine.stdout.on("data", handler);
+
+      this.sendCommand("ucinewgame");
+      this.sendCommand("isready");
+      this.sendCommand(`position fen ${fen}`);
+      this.sendCommand(`go depth ${depth}`);
+
+      // Add timeout for safety
+      setTimeout(() => {
+        if (!isResolved) {
+          cleanup();
+          reject(new Error("Evaluation timeout"));
+        }
+      }, 10000);
+    });
+  }
+
+  async analyzePosition(fen, playerMove) {
+    try {
+      const [bestMove, evaluation] = await Promise.all([
+        this.getBestMove(fen),
+        this.getPositionEvaluation(fen, this.depth)
+      ]);
+
+      let analysis = {
+        bestMove,
+        evaluation,
+        quality: this.getMoveQuality(evaluation),
+        suggestion: null
+      };
+
+      if (playerMove && playerMove !== bestMove) {
+        analysis.suggestion = {
+          move: bestMove,
+          explanation: this.getMoveSuggestion(evaluation)
+        };
+      }
+
+      return analysis;
+    } catch (error) {
+      console.error("Analysis error:", error);
+      throw new Error(`Position analysis failed: ${error.message}`);
+    }
+  }
+
+  getMoveQuality(evaluation) {
+    if (evaluation >= 300) return "Excellent";
+    if (evaluation >= 100) return "Good";
+    if (evaluation >= -100) return "Moderate";
+    if (evaluation >= -300) return "Inaccurate";
+    return "Mistake";
+  }
+
+  getMoveSuggestion(evaluation) {
+    if (evaluation >= 300) {
+      return "This move gives you a winning advantage";
+    } else if (evaluation >= 100) {
+      return "This move gives you a clear advantage";
+    } else if (evaluation >= -100) {
+      return "This move maintains an equal position";
+    } else if (evaluation >= -300) {
+      return "Consider looking for a better move";
+    } else {
+      return "There might be a stronger continuation";
+    }
+  }
+
   destroy() {
     if (this.engine) {
       this.sendCommand("quit");

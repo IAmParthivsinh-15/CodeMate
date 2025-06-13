@@ -7,7 +7,9 @@ import gameRoutes from "./routes/game.js";
 import adminRoutes from "./routes/admin.js";
 import codeRoutes from './routes/code.js';
 import queRoutes from './routes/codingQuestion.js';
+import gameAnalysisRoutes from "./routes/gameAnalysis.js";
 import { getBestMoveHandler } from "./controller/testEngine.js";
+
 
 import cookieParser from "cookie-parser";
 
@@ -25,7 +27,7 @@ app.use("/api/game", gameRoutes);
 app.use("/api/admin", adminRoutes);
 app.use('/api/code', codeRoutes);
 app.use("/api/coding-questions",queRoutes)
-
+app.use("/api/game-analysis",gameAnalysisRoutes)
 app.get("/test", getBestMoveHandler);
 
 app.get("/", (req, res) => {
