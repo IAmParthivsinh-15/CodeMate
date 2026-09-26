@@ -1,6 +1,6 @@
-import CodeExecutor from "../services/codeExecutor.js";
-import CodingQuestion from "../model/codingQuestion.js";
-import User from "../model/user.js";
+import CodeExecutor from "../../infrastructure/judge0/codeExecutor.js";
+import CodingQuestion from "./codingQuestion.model.js";
+import User from "../users/user.model.js";
 
 const codeExecutor = new CodeExecutor();
 

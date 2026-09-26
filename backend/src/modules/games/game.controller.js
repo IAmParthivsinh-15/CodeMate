@@ -1,6 +1,6 @@
-import User from "../model/user.js";
-import GameSession from "../model/gameSession.js";
-import ChessEngine from "../services/chessEngine.js";
+import User from "../users/user.model.js";
+import GameSession from "./gameSession.model.js";
+import ChessEngine from "../../infrastructure/stockfish/chessEngine.js";
 
 export const startGame = async (req, res) => {
   try {

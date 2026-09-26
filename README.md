@@ -123,6 +123,23 @@ The user interface is the next major milestone.
     *   Statistics and game history tracking
     *   In-game code editor
 
+## 🗂️ Repository Layout
+
+```text
+CodeMate/
+├── backend/                 # Node.js + Express API (modular monolith): see backend/README.md
+├── frontend/                # React + TypeScript + Vite client (Phase 1)
+├── infrastructure/
+│   └── kubernetes/          # Deployment, Service, ConfigMap (secret.yaml is local-only)
+├── docs/
+│   ├── architecture/        # Gap analysis and the phase-by-phase implementation plan
+│   ├── api/                 # Current REST API reference
+│   └── decisions/           # Architecture decision records (ADRs)
+└── ENHANCEMENT.md           # The engineering specification this project is evolving towards
+```
+
+New top-level folders (`ai/`, `workers/`, and more under `infrastructure/`) are added in the phase that first needs them. Current status and known gaps: **[docs/architecture/gap-analysis.md](./docs/architecture/gap-analysis.md)**.
+
 ## 🛠️ Tech Stack & Tools
 
 | Area      | Technology                                    |

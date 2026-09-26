@@ -1,4 +1,4 @@
-import ChessEngine from "../services/chessEngine.js";
+import ChessEngine from "../../infrastructure/stockfish/chessEngine.js";
 
 export async function getBestMoveHandler(req, res) {
   const { fen, level = "grandmaster" } = req.body;

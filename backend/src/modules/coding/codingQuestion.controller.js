@@ -1,4 +1,4 @@
-import CodingQuestion from "../model/codingQuestion.js";
+import CodingQuestion from "./codingQuestion.model.js";
 import crypto from "crypto";
 
 export const addQuestion = async (req, res) => {

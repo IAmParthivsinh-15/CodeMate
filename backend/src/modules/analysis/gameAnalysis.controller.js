@@ -1,7 +1,7 @@
-import GameSession from '../model/gameSession.js';
-import GameAnalysis from '../model/GameAnalysis.js';
-import ChessEngine from '../services/chessEngine.js';
-import geminiService from '../services/geminiService.js';
+import GameSession from '../games/gameSession.model.js';
+import GameAnalysis from './gameAnalysis.model.js';
+import ChessEngine from '../../infrastructure/stockfish/chessEngine.js';
+import geminiService from '../../infrastructure/llm/geminiService.js';
 import { Chess } from 'chess.js';
 
 class GameAnalysisController {

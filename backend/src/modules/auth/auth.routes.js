@@ -1,12 +1,12 @@
 import express from "express";
-import { protectRoutes } from "../middlewares/auth.js";
+import { protectRoutes } from "../../middleware/auth.js";
 import {
   login,
   register,
   logout,
   refreshToken,
   getUserProfile,
-} from "../controller/auth.js";
+} from "./auth.controller.js";
 
 const router = express.Router();
 

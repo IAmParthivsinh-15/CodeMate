@@ -15,43 +15,40 @@ A comprehensive learning platform combining chess gaming and coding challenges, 
 
 ## 📁 Project Structure
 
+The backend is a **modular monolith**: code is grouped by feature, not by layer. See [ADR 0001](../docs/decisions/0001-modular-monolith-layout.md) for the reasoning.
+
 ```
 backend/
-├── config/
-│   └── db.js               # MongoDB connection configuration
-├── controller/
-│   ├── admin.js            # Admin controllers
-│   ├── auth.js             # Authentication controllers
-│   ├── game.js             # Game logic controllers
-│   ├── gameAnalysis.js     # Game analysis controllers
-│   ├── codingQuestions.js  # Coding problems controllers
-│   └── codeExecution.js    # Code execution controllers
 ├── engine/
-│   ├── stockfish           # Linux Stockfish executable
-│   └── stockfish.exe       # Windows Stockfish executable
-├── k8s/
-│   ├── configmap.yaml      # Kubernetes ConfigMap
-│   ├── deployment.yaml     # Kubernetes Deployment
-│   ├── secret.yaml         # Kubernetes Secrets
-│   └── service.yaml        # Kubernetes Service
-├── model/
-│   ├── admin.js           # Admin model
-│   ├── codingQuestion.js  # Coding question model
-│   ├── gameAnalysis.js    # Game analysis model
-│   ├── gameSession.js     # Game session model
-│   └── user.js           # User model
-├── routes/
-│   ├── admin.js          # Admin routes
-│   ├── auth.js          # Authentication routes
-│   ├── code.js         # Code execution routes
-│   ├── game.js        # Game routes
-│   └── gameAnalysis.js # Analysis routes
-├── services/
-│   ├── chessEngine.js    # Chess engine service
-│   ├── codeExecutor.js   # Code execution service
-│   └── geminiService.js  # AI analysis service
-└── server.js             # Main application entry
+│   ├── stockfish                      # Linux Stockfish executable
+│   └── stockfish.exe                  # Windows Stockfish executable
+├── src/
+│   ├── server.js                      # Entry point: loads .env, connects MongoDB, starts HTTP
+│   ├── routes/
+│   │   └── index.js                   # Mounts every module router at its URL prefix
+│   ├── middleware/
+│   │   ├── auth.js                    # protectRoutes / protectAdminRoutes (JWT)
+│   │   └── checkRole.js               # Role guard (admin / superadmin)
+│   ├── modules/
+│   │   ├── auth/                      # register, login, refresh, logout, me + JWT helpers (tokens.js)
+│   │   ├── users/                     # User model
+│   │   ├── admin/                     # Admin model, login, add-admin
+│   │   ├── games/                     # GameSession model, start / save / end, bot move
+│   │   ├── chess/                     # Engine debug endpoint
+│   │   ├── analysis/                  # GameAnalysis model, Stockfish + Gemini analysis
+│   │   └── coding/                    # CodingQuestion model, questions, code execution
+│   └── infrastructure/
+│       ├── mongodb/connection.js      # Mongoose connection
+│       ├── stockfish/chessEngine.js   # UCI wrapper around the Stockfish binary
+│       ├── judge0/codeExecutor.js     # Judge0 (RapidAPI) client
+│       └── llm/geminiService.js       # Gemini report generation
+├── .env.example                       # Required environment variables
+└── Dockerfile
 ```
+
+Kubernetes manifests are at [`infrastructure/kubernetes/`](../infrastructure/kubernetes/) in the repo root.
+
+> Run the server from `backend/`. `npm start` and `npm run dev` already do this, and the Stockfish binary is found relative to the current working directory.
 
 ## 🎮 Chess Features
 
@@ -141,33 +138,35 @@ backend/
 
 ## 🔑 Environment Variables
 
-Required in `.env`:
-```
-PORT=port
-MONGO_URL=your_mongodb_url
-ACCESS_TOKEN_SECRET=your_secret
-REFRESH_TOKEN_SECRET=your_secret
-JUDGE0_API_URL=your_judge0_url
-JUDGE0_API_KEY=your_judge0_key
-GEMINI_API_KEY=your_gemini_key
-```
+Copy [`.env.example`](./.env.example) to `.env` and fill it in. Never commit `.env`.
+
+| Variable | Required | Used by |
+| :-- | :-- | :-- |
+| `PORT` | yes | HTTP server |
+| `MONGO_URL` | yes | MongoDB connection |
+| `ACCESS_TOKEN_SECRET` | yes | Access JWT signing and verification |
+| `ACCESS_TOKEN_EXPIRES_IN` | no (default `15m`) | Access JWT lifetime |
+| `REFRESH_TOKEN_SECRET` | yes | Refresh JWT signing and verification |
+| `REFRESH_TOKEN_EXPIRES_IN` | yes | Refresh JWT lifetime |
+| `JUDGE0_API_URL` | for code execution | Judge0 base URL |
+| `JUDGE0_API_KEY` | for code execution | RapidAPI key |
+| `GEMINI_API_KEY` | for AI reports | Gemini client |
+| `NODE_ENV` | no | Adds error details to code-execution failures when `development` |
 
 ## 🚀 API Endpoints
 
-### Chess Routes
-```
-POST /api/game/start      - Start new game
-POST /api/game/move      - Make move
-POST /api/game/analysis  - Analyze game
-GET  /api/game/history  - Get game history
-```
+The full, current reference is in [docs/api/api.md](../docs/api/api.md).
 
-### Coding Routes
-```
-POST /api/code/execute    - Execute code
-GET  /api/questions      - Get coding questions
-POST /api/questions/add  - Add new question
-```
+| Prefix | Module |
+| :-- | :-- |
+| `/api/auth` | register, login, refresh, logout, me |
+| `/api/admin` | admin login, add admin |
+| `/api/game` | start, save, end |
+| `/api/game-analysis` | analyze |
+| `/api/coding-questions` | add-question, get-a-question |
+| `/api/code` | execute |
+
+Known defects and the plan to fix them: [gap analysis](../docs/architecture/gap-analysis.md), [Phase 0/1 plan](../docs/architecture/phase-0-1-plan.md).
 
 ## 🔄 Development
 
@@ -195,7 +194,9 @@ Build and deploy:
 docker build -t codemate-backend .
 docker run -p 5050:5050 codemate-backend
 
-# Kubernetes
-kubectl apply -f k8s/
+# Kubernetes (from the repo root)
+kubectl apply -f infrastructure/kubernetes/
 ```
+
+`infrastructure/kubernetes/secret.yaml` is gitignored. Create it locally with your own base64-encoded values, and never commit it.
 

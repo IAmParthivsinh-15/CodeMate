@@ -1,6 +1,6 @@
 import express from "express";
-import { addQuestion ,getAquestion} from "../controller/codingQuestions.js";
-import { protectAdminRoutes } from "../middlewares/auth.js";
+import { addQuestion ,getAquestion} from "./codingQuestion.controller.js";
+import { protectAdminRoutes } from "../../middleware/auth.js";
 
 const router = express.Router();
 

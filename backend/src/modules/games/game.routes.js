@@ -1,6 +1,6 @@
 import express from "express";
-import { protectRoutes } from "../middlewares/auth.js";
-import { startGame, endGame, saveGame } from "../controller/game.js";
+import { protectRoutes } from "../../middleware/auth.js";
+import { startGame, endGame, saveGame } from "./game.controller.js";
 
 const router = express.Router();
 

@@ -1,6 +1,6 @@
 import express from 'express';
-import { executeCode } from '../controller/codeExecutionController.js';
-import { protectRoutes } from '../middlewares/auth.js';
+import { executeCode } from './codeExecution.controller.js';
+import { protectRoutes } from '../../middleware/auth.js';
 
 const router = express.Router();
 

@@ -1,6 +1,6 @@
-import Admin from "../model/admin.js";
+import Admin from "./admin.model.js";
 import bcrypt from "bcrypt";
-import { genToken, refToken } from "../utills/genToken.js";
+import { genToken, refToken } from "../auth/tokens.js";
 
 export const loginAdmin = async (req, res) => {
   try {
