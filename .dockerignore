@@ -1,0 +1,13 @@
+# Build context is the repo root (the backend image needs ai/ for the corpus and prompts).
+**/node_modules
+**/dist
+**/coverage
+.git
+**/.env
+**/.env.*
+!**/.env.example
+infrastructure/kubernetes/secret.yaml
+backend/engine/stockfish.exe
+backend/tests
+frontend/src/**/*.test.*
+ENHANCEMENT.md

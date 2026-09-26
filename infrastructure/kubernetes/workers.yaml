@@ -1,0 +1,139 @@
+# Event consumers (Kafka consumer groups), one Deployment per worker so they
+# scale and fail independently. Each still serves /health, /ready and /metrics.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analysis-worker
+  namespace: codemate
+  labels: { app: codemate, role: worker, worker: analysis }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: codemate, worker: analysis } }
+  template:
+    metadata:
+      labels: { app: codemate, role: worker, worker: analysis }
+      annotations: { prometheus.io/scrape: "true", prometheus.io/port: "5050", prometheus.io/path: /metrics }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 1000, fsGroup: 1000 }
+      containers:
+        - name: worker
+          image: parthivsinhv/codemate-backend:latest
+          env:
+            - { name: SERVICE_ROLE, value: worker }
+            - { name: WORKERS, value: analysis }
+          envFrom: [{ configMapRef: { name: codemate-config } }, { secretRef: { name: codemate-secrets } }]
+          ports: [{ name: http, containerPort: 5050 }]
+          readinessProbe: { httpGet: { path: /ready, port: http }, periodSeconds: 15 }
+          livenessProbe: { httpGet: { path: /health, port: http }, initialDelaySeconds: 30, periodSeconds: 30 }
+          # Stockfish is CPU-bound: ENGINE_POOL_SIZE processes per pod.
+          resources:
+            requests: { cpu: "1", memory: 512Mi }
+            limits: { cpu: "2", memory: 1Gi }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true }
+          volumeMounts: [{ name: tmp, mountPath: /tmp }]
+      volumes: [{ name: tmp, emptyDir: {} }]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: analysis-worker, namespace: codemate }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: analysis-worker }
+  minReplicas: 1
+  maxReplicas: 3 # bounded by the topic's partition count (3)
+  metrics: [{ type: Resource, resource: { name: cpu, target: { type: Utilization, averageUtilization: 75 } } }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-worker
+  namespace: codemate
+  labels: { app: codemate, role: worker, worker: ai }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: codemate, worker: ai } }
+  template:
+    metadata:
+      labels: { app: codemate, role: worker, worker: ai }
+      annotations: { prometheus.io/scrape: "true", prometheus.io/port: "5050", prometheus.io/path: /metrics }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 1000, fsGroup: 1000 }
+      containers:
+        - name: worker
+          image: parthivsinhv/codemate-backend:latest
+          env:
+            - { name: SERVICE_ROLE, value: worker }
+            - { name: WORKERS, value: ai }
+          envFrom: [{ configMapRef: { name: codemate-config } }, { secretRef: { name: codemate-secrets } }]
+          ports: [{ name: http, containerPort: 5050 }]
+          readinessProbe: { httpGet: { path: /ready, port: http }, periodSeconds: 15 }
+          livenessProbe: { httpGet: { path: /health, port: http }, initialDelaySeconds: 30, periodSeconds: 30 }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true }
+          volumeMounts: [{ name: tmp, mountPath: /tmp }]
+      volumes: [{ name: tmp, emptyDir: {} }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coding-worker
+  namespace: codemate
+  labels: { app: codemate, role: worker, worker: coding }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: codemate, worker: coding } }
+  template:
+    metadata:
+      labels: { app: codemate, role: worker, worker: coding }
+      annotations: { prometheus.io/scrape: "true", prometheus.io/port: "5050", prometheus.io/path: /metrics }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 1000, fsGroup: 1000 }
+      containers:
+        - name: worker
+          image: parthivsinhv/codemate-backend:latest
+          env:
+            - { name: SERVICE_ROLE, value: worker }
+            - { name: WORKERS, value: coding }
+          envFrom: [{ configMapRef: { name: codemate-config } }, { secretRef: { name: codemate-secrets } }]
+          ports: [{ name: http, containerPort: 5050 }]
+          readinessProbe: { httpGet: { path: /ready, port: http }, periodSeconds: 15 }
+          livenessProbe: { httpGet: { path: /health, port: http }, initialDelaySeconds: 30, periodSeconds: 30 }
+          resources:
+            requests: { cpu: 100m, memory: 192Mi }
+            limits: { cpu: 500m, memory: 384Mi }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true }
+          volumeMounts: [{ name: tmp, mountPath: /tmp }]
+      volumes: [{ name: tmp, emptyDir: {} }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-worker
+  namespace: codemate
+  labels: { app: codemate, role: worker, worker: analytics }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: codemate, worker: analytics } }
+  template:
+    metadata:
+      labels: { app: codemate, role: worker, worker: analytics }
+      annotations: { prometheus.io/scrape: "true", prometheus.io/port: "5050", prometheus.io/path: /metrics }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 1000, fsGroup: 1000 }
+      containers:
+        - name: worker
+          image: parthivsinhv/codemate-backend:latest
+          env:
+            - { name: SERVICE_ROLE, value: worker }
+            - { name: WORKERS, value: analytics }
+          envFrom: [{ configMapRef: { name: codemate-config } }, { secretRef: { name: codemate-secrets } }]
+          ports: [{ name: http, containerPort: 5050 }]
+          readinessProbe: { httpGet: { path: /ready, port: http }, periodSeconds: 15 }
+          livenessProbe: { httpGet: { path: /health, port: http }, initialDelaySeconds: 30, periodSeconds: 30 }
+          resources:
+            requests: { cpu: 100m, memory: 192Mi }
+            limits: { cpu: 500m, memory: 384Mi }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true }
+          volumeMounts: [{ name: tmp, mountPath: /tmp }]
+      volumes: [{ name: tmp, emptyDir: {} }]

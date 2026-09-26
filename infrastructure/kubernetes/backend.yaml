@@ -1,0 +1,87 @@
+# Backend workloads. One image, one Deployment per role (SERVICE_ROLE), so each
+# scales independently: the API on request load, realtime on connections, the
+# analysis worker on Stockfish CPU.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: codemate
+  labels: { app: codemate, role: api }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: codemate, role: api } }
+  template:
+    metadata:
+      labels: { app: codemate, role: api }
+      annotations: { prometheus.io/scrape: "true", prometheus.io/port: "5050", prometheus.io/path: /metrics }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 1000, fsGroup: 1000 }
+      containers:
+        - name: api
+          image: parthivsinhv/codemate-backend:latest
+          env: [{ name: SERVICE_ROLE, value: api }]
+          envFrom: [{ configMapRef: { name: codemate-config } }, { secretRef: { name: codemate-secrets } }]
+          ports: [{ name: http, containerPort: 5050 }]
+          readinessProbe: { httpGet: { path: /ready, port: http }, periodSeconds: 10, failureThreshold: 3 }
+          livenessProbe: { httpGet: { path: /health, port: http }, initialDelaySeconds: 20, periodSeconds: 20 }
+          resources:
+            requests: { cpu: 250m, memory: 256Mi }
+            limits: { cpu: "1", memory: 512Mi }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true }
+          volumeMounts: [{ name: tmp, mountPath: /tmp }]
+      volumes: [{ name: tmp, emptyDir: {} }]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: api, namespace: codemate }
+spec:
+  selector: { app: codemate, role: api }
+  ports: [{ name: http, port: 5050, targetPort: http }]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: api, namespace: codemate }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: api }
+  minReplicas: 2
+  maxReplicas: 8
+  metrics: [{ type: Resource, resource: { name: cpu, target: { type: Utilization, averageUtilization: 70 } } }]
+---
+# Socket.IO gateway. Requires REDIS_URL (Redis adapter) when replicas > 1.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: realtime
+  namespace: codemate
+  labels: { app: codemate, role: realtime }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: codemate, role: realtime } }
+  template:
+    metadata:
+      labels: { app: codemate, role: realtime }
+      annotations: { prometheus.io/scrape: "true", prometheus.io/port: "5050", prometheus.io/path: /metrics }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 1000, fsGroup: 1000 }
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: realtime
+          image: parthivsinhv/codemate-backend:latest
+          env: [{ name: SERVICE_ROLE, value: realtime }]
+          envFrom: [{ configMapRef: { name: codemate-config } }, { secretRef: { name: codemate-secrets } }]
+          ports: [{ name: http, containerPort: 5050 }]
+          readinessProbe: { httpGet: { path: /ready, port: http }, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /health, port: http }, initialDelaySeconds: 20, periodSeconds: 20 }
+          resources:
+            requests: { cpu: 200m, memory: 256Mi }
+            limits: { cpu: "1", memory: 512Mi }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true }
+          volumeMounts: [{ name: tmp, mountPath: /tmp }]
+      volumes: [{ name: tmp, emptyDir: {} }]
+---
+apiVersion: v1
+kind: Service
+metadata: { name: realtime, namespace: codemate }
+spec:
+  selector: { app: codemate, role: realtime }
+  ports: [{ name: http, port: 5050, targetPort: http }]
