@@ -1,18 +1,15 @@
 import mongoose from "mongoose";
-import dotenv from "dotenv";
-dotenv.config();
+import { env } from "../../config/env.js";
+import { childLogger } from "../logger/index.js";
 
-const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URL, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.log("MongoDB Connected");
-  } catch (error) {
-    console.error("MongoDB Connection Error:", error);
-    process.exit(1);
-  }
-};
+const log = childLogger("mongodb");
 
-export default connectDB;
+export default async function connectDB(url = env.MONGO_URL) {
+  mongoose.set("strictQuery", true);
+  mongoose.connection.on("disconnected", () => log.warn("MongoDB disconnected"));
+  mongoose.connection.on("reconnected", () => log.info("MongoDB reconnected"));
+  await mongoose.connect(url, { serverSelectionTimeoutMS: 15000 });
+  log.info("MongoDB connected");
+}
+
+export const disconnectDB = () => mongoose.disconnect();

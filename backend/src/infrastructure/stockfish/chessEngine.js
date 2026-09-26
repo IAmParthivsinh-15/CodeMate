@@ -1,275 +1,206 @@
 import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
+import { env } from "../../config/env.js";
+import { childLogger } from "../logger/index.js";
+import { parseInfoLine, parseBestMove } from "./uci.js";
 
-class ChessEngine {
-  constructor(difficulty = "intermediate") {
-    if (!this.validateDifficulty(difficulty)) {
-      throw new Error(`Invalid difficulty level: ${difficulty}`);
+const log = childLogger("stockfish");
+const here = path.dirname(fileURLToPath(import.meta.url));
+
+// Resolved relative to this file (not process.cwd()), so the server can be
+// started from any directory. STOCKFISH_PATH overrides it.
+export function resolveStockfishPath() {
+  if (env.STOCKFISH_PATH) return env.STOCKFISH_PATH;
+  const exe = process.platform === "win32" ? "stockfish.exe" : "stockfish";
+  return path.resolve(here, "../../../engine", exe);
+}
+
+// Bot strength per difficulty. Elo figures match the README and are used as
+// the bot's rating when AI games are rated.
+export const DIFFICULTY = Object.freeze({
+  beginner: { skill: 0, depth: 5, elo: 1000 },
+  intermediate: { skill: 5, depth: 8, elo: 1500 },
+  advanced: { skill: 10, depth: 12, elo: 1800 },
+  master: { skill: 15, depth: 15, elo: 2100 },
+  grandmaster: { skill: 20, depth: 18, elo: 2400 },
+  legendary: { skill: 20, depth: 22, elo: 2700 },
+});
+export const DIFFICULTIES = Object.keys(DIFFICULTY);
+
+/**
+ * One Stockfish process. Searches are serialised through a promise chain, so
+ * concurrent callers can never interleave UCI commands (the previous version
+ * ran two searches at once on one process and mixed up their output).
+ */
+export class UciEngine {
+  constructor(binPath = resolveStockfishPath()) {
+    this.binPath = binPath;
+    this.queue = Promise.resolve();
+    this.listeners = new Set();
+    this.buffer = "";
+    this.proc = null;
+  }
+
+  async start() {
+    if (this.proc) return;
+    if (!fs.existsSync(this.binPath)) throw new Error(`Stockfish binary not found at ${this.binPath}`);
+    if (process.platform !== "win32") {
+      try { fs.chmodSync(this.binPath, 0o755); } catch { /* read-only FS: must already be executable */ }
     }
-
-    this.difficulty = difficulty;
-    this.engine = null;
-    this.lastOutput = "";
-    this.stockfishPath = this.getStockfishPath();
-    this.initializeEngine();
-  }
-
-  getStockfishPath() {
-    const executableName = process.platform === "win32" ? "stockfish.exe" : "stockfish";
-    const enginePath = path.join(process.cwd(), "engine", executableName);
-
-    console.log("os platform:", process.platform);
-
-    if (!fs.existsSync(enginePath)) {
-      throw new Error(`Stockfish engine not found at ${enginePath}`);
-    }
-
-    console.log("Stockfish engine path:", enginePath);
-    return enginePath;
-  }
-
-  validateDifficulty(difficulty) {
-    const validLevels = [
-      "beginner",
-      "intermediate",
-      "advanced",
-      "master",
-      "grandmaster",
-      "legendary",
-    ];
-    return validLevels.includes(difficulty);
-  }
-
-  initializeEngine() {
-    try {
-      console.log("Initializing Stockfish engine...");
-
-      // Skip chmod on Windows
-      if (process.platform !== "win32") {
-        try {
-          fs.chmodSync(this.stockfishPath, "755");
-        } catch (error) {
-          console.warn("Failed to set executable permissions:", error);
-        }
+    this.proc = spawn(this.binPath, [], { stdio: ["pipe", "pipe", "pipe"] });
+    this.proc.stdout.setEncoding("utf8");
+    this.proc.stdout.on("data", (chunk) => {
+      this.buffer += chunk;
+      let idx;
+      while ((idx = this.buffer.indexOf("\n")) >= 0) {
+        const line = this.buffer.slice(0, idx).trim();
+        this.buffer = this.buffer.slice(idx + 1);
+        if (line) for (const l of this.listeners) l(line);
       }
-
-      this.engine = spawn(this.stockfishPath);
-      console.log("Stockfish engine spawned");
-
-      this.engine.stdout.on("data", (data) => {
-        this.lastOutput = data.toString();
-        console.log("Engine output:", this.lastOutput);
-      });
-
-      this.engine.stderr.on("data", (data) => {
-        console.error(`Stockfish error: ${data}`);
-      });
-
-      this.engine.on("error", (error) => {
-        console.error("Engine spawn error:", error);
-        throw error;
-      });
-
-      this.setDifficulty(this.difficulty);
-    } catch (err) {
-      console.error("Engine initialization error:", err);
-      throw new Error(`Failed to initialize Stockfish: ${err.message}`);
-    }
+    });
+    this.proc.stderr.on("data", (d) => log.warn({ stderr: d.toString() }, "Stockfish stderr"));
+    this.proc.on("exit", (code) => {
+      log.warn({ code }, "Stockfish exited");
+      this.proc = null;
+    });
+    this.proc.on("error", (err) => log.error({ err }, "Stockfish process error"));
+    this.send("uci");
+    await this.#waitFor((l) => l === "uciok", 10000);
+    await this.ready();
   }
 
-  setDifficulty(difficulty) {
-    const skillLevels = {
-      beginner: {
-        level: 0,
-        depth: 5
-      },
-      intermediate: {
-        level: 5,
-        depth: 10
-      },
-      advanced: {
-        level: 10,
-        depth: 15
-      },
-      master: {
-        level: 15,
-        depth: 18
-      },
-      grandmaster: {
-        level: 20,
-        depth: 20
-      },
-      legendary: {
-        level: 20,
-        depth: 22
-      }
-    };
-
-    const config = skillLevels[difficulty];
-    this.sendCommand(`setoption name Skill Level value ${config.level}`);
-    this.depth = config.depth;
-    this.difficulty = difficulty;
+  send(cmd) {
+    if (!this.proc) throw new Error("Engine not started");
+    this.proc.stdin.write(`${cmd}\n`);
   }
 
-  sendCommand(command) {
-    if (!this.engine) {
-      throw new Error("Engine not initialized");
-    }
-    this.engine.stdin.write(`${command}\n`);
-  }
-
-  async getBestMove(fen) {
+  #waitFor(predicate, timeoutMs, onLine) {
     return new Promise((resolve, reject) => {
-      if (!this.engine) {
-        return reject(new Error("Engine not initialized"));
-      }
-
-      let isResolved = false;
-
-      const handler = (data) => {
-        const output = data.toString();
-        console.log('Engine output:', output);
-
-        if (output.includes("bestmove") && !isResolved) {
-          isResolved = true;
-          cleanup();
-          const move = this.parseBestMove(output);
-          if (move) {
-            resolve(move);
-          } else {
-            reject(new Error("Engine returned invalid move"));
-          }
+      const timer = setTimeout(() => { this.listeners.delete(listener); reject(new Error("Stockfish timeout")); }, timeoutMs);
+      const listener = (line) => {
+        onLine?.(line);
+        if (predicate(line)) {
+          clearTimeout(timer);
+          this.listeners.delete(listener);
+          resolve(line);
         }
       };
-
-      const cleanup = () => {
-        this.engine.stdout.removeListener("data", handler);
-      };
-
-      this.engine.stdout.on("data", handler);
-
-      // Initialize the engine with the position
-      this.sendCommand("ucinewgame");
-      this.sendCommand("isready");
-      this.sendCommand(`position fen ${fen}`);
-      
-      // Use depth instead of movetime
-      setTimeout(() => {
-        if (!isResolved) {
-          this.sendCommand(`go depth ${this.depth}`);
-        }
-      }, 100);
+      this.listeners.add(listener);
     });
   }
 
-  parseBestMove(output) {
-    const match = output.match(/bestmove (\S+)/);
-    if (!match) return null;
-
-    const move = match[1];
-    return move === "(none)" ? null : move;
+  async ready() {
+    this.send("isready");
+    await this.#waitFor((l) => l === "readyok", 10000);
   }
 
-  async getPositionEvaluation(fen, depth = 18) {
-    return new Promise((resolve, reject) => {
-      if (!this.engine) {
-        return reject(new Error("Engine not initialized"));
-      }
-
-      let isResolved = false;
-
-      const handler = (data) => {
-        const output = data.toString();
-        console.log('Evaluation output:', output);
-
-        if (output.includes("info depth") && output.includes("score cp") && !isResolved) {
-          const match = output.match(/score cp (-?\d+)/);
-          if (match) {
-            isResolved = true;
-            cleanup();
-            resolve(parseInt(match[1]));
-          }
+  /**
+   * Search one position. Returns the final (deepest) principal line.
+   * @param {{fen:string, depth?:number, movetime?:number, skill?:number, multipv?:number}} opts
+   */
+  search({ fen, depth = 12, movetime, skill = 20, multipv = 1, timeoutMs = 30000 }) {
+    const run = async () => {
+      await this.start();
+      this.send(`setoption name Skill Level value ${skill}`);
+      this.send(`setoption name MultiPV value ${multipv}`);
+      this.send("ucinewgame");
+      await this.ready();
+      this.send(`position fen ${fen}`);
+      const lines = new Map(); // multipv -> latest info at highest depth
+      const go = movetime ? `go movetime ${movetime}` : `go depth ${depth}`;
+      this.send(go);
+      const bestLine = await this.#waitFor((l) => l.startsWith("bestmove"), timeoutMs, (l) => {
+        const info = parseInfoLine(l);
+        if (info) {
+          const prev = lines.get(info.multipv);
+          if (!prev || info.depth >= prev.depth) lines.set(info.multipv, info);
         }
-      };
-
-      const cleanup = () => {
-        this.engine.stdout.removeListener("data", handler);
-      };
-
-      this.engine.stdout.on("data", handler);
-
-      this.sendCommand("ucinewgame");
-      this.sendCommand("isready");
-      this.sendCommand(`position fen ${fen}`);
-      this.sendCommand(`go depth ${depth}`);
-
-      // Add timeout for safety
-      setTimeout(() => {
-        if (!isResolved) {
-          cleanup();
-          reject(new Error("Evaluation timeout"));
-        }
-      }, 10000);
-    });
-  }
-
-  async analyzePosition(fen, playerMove) {
-    try {
-      const [bestMove, evaluation] = await Promise.all([
-        this.getBestMove(fen),
-        this.getPositionEvaluation(fen, this.depth)
-      ]);
-
-      let analysis = {
+      });
+      const { bestMove, ponder } = parseBestMove(bestLine);
+      const main = lines.get(1);
+      return {
         bestMove,
-        evaluation,
-        quality: this.getMoveQuality(evaluation),
-        suggestion: null
+        ponder,
+        depth: main?.depth ?? 0,
+        score: main?.score ?? null, // side-to-move POV; null when the game is already over
+        pv: main?.pv ?? (bestMove ? [bestMove] : []),
+        lines: [...lines.values()].sort((a, b) => a.multipv - b.multipv),
       };
-
-      if (playerMove && playerMove !== bestMove) {
-        analysis.suggestion = {
-          move: bestMove,
-          explanation: this.getMoveSuggestion(evaluation)
-        };
-      }
-
-      return analysis;
-    } catch (error) {
-      console.error("Analysis error:", error);
-      throw new Error(`Position analysis failed: ${error.message}`);
-    }
+    };
+    const result = this.queue.then(run, run);
+    this.queue = result.catch(() => {});
+    return result;
   }
 
-  getMoveQuality(evaluation) {
-    if (evaluation >= 300) return "Excellent";
-    if (evaluation >= 100) return "Good";
-    if (evaluation >= -100) return "Moderate";
-    if (evaluation >= -300) return "Inaccurate";
-    return "Mistake";
-  }
-
-  getMoveSuggestion(evaluation) {
-    if (evaluation >= 300) {
-      return "This move gives you a winning advantage";
-    } else if (evaluation >= 100) {
-      return "This move gives you a clear advantage";
-    } else if (evaluation >= -100) {
-      return "This move maintains an equal position";
-    } else if (evaluation >= -300) {
-      return "Consider looking for a better move";
-    } else {
-      return "There might be a stronger continuation";
-    }
-  }
-
-  destroy() {
-    if (this.engine) {
-      this.sendCommand("quit");
-      this.engine.kill();
-    }
+  quit() {
+    if (!this.proc) return;
+    try { this.send("quit"); } catch { /* already gone */ }
+    this.proc.kill();
+    this.proc = null;
   }
 }
 
-export default ChessEngine;
+/**
+ * Fixed-size pool so concurrent requests don't spawn unbounded processes
+ * (the old GET /test spawned one per request).
+ */
+export class EnginePool {
+  constructor(size = env.ENGINE_POOL_SIZE) {
+    this.size = size;
+    this.engines = [];
+    this.idle = [];
+    this.waiters = [];
+  }
+
+  async #acquire() {
+    if (this.idle.length) return this.idle.pop();
+    if (this.engines.length < this.size) {
+      const e = new UciEngine();
+      this.engines.push(e);
+      return e;
+    }
+    return new Promise((resolve) => this.waiters.push(resolve));
+  }
+
+  #release(engine) {
+    const next = this.waiters.shift();
+    if (next) next(engine);
+    else this.idle.push(engine);
+  }
+
+  async search(opts) {
+    const engine = await this.#acquire();
+    try {
+      return await engine.search(opts);
+    } catch (err) {
+      engine.quit(); // a timed-out engine may still be searching: replace it
+      this.engines = this.engines.filter((e) => e !== engine);
+      const fresh = new UciEngine();
+      this.engines.push(fresh);
+      this.#release(fresh);
+      throw err;
+    } finally {
+      if (this.engines.includes(engine)) this.#release(engine);
+    }
+  }
+
+  shutdown() {
+    for (const e of this.engines) e.quit();
+    this.engines = [];
+    this.idle = [];
+  }
+}
+
+let pool;
+export const enginePool = () => pool || (pool = new EnginePool());
+
+// Bot move at a difficulty level.
+export async function getBotMove(fen, difficulty = "intermediate") {
+  const cfg = DIFFICULTY[difficulty] || DIFFICULTY.intermediate;
+  const res = await enginePool().search({ fen, depth: cfg.depth, skill: cfg.skill });
+  return res.bestMove;
+}
+
+export const shutdownEngines = () => pool?.shutdown();

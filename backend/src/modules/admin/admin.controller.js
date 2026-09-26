@@ -1,90 +1,26 @@
-import Admin from "./admin.model.js";
 import bcrypt from "bcrypt";
+import Admin from "./admin.model.js";
 import { genToken, refToken } from "../auth/tokens.js";
+import { conflict, unauthorized } from "../../shared/errors.js";
+import { ok, created } from "../../shared/http.js";
+
+const view = (a) => ({ _id: a._id, username: a.username, email: a.email, role: a.role });
 
 export const loginAdmin = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    const admin = await Admin.findOne({ email });
-    if (!admin) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    const isMatch = await bcrypt.compare(password, admin.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    const token = genToken(admin._id, res);
-    const refreshToken = refToken(admin._id, res);
-
-    res.status(200).json({
-      _id: admin._id,
-      username: admin.username,
-      email: admin.email,
-      role: admin.role,
-      token,
-      refreshToken,
-    });
-  } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({ message: "Internal server error" });
+  const { email, password } = req.body;
+  const admin = await Admin.findOne({ email }).select("+password");
+  if (!admin || !(await bcrypt.compare(password, admin.password))) {
+    throw unauthorized("Invalid credentials", "INVALID_CREDENTIALS");
   }
+  const token = genToken(admin._id, res, "admin");
+  const refreshToken = refToken(admin._id, res, "admin");
+  ok(res, { ...view(admin), token, refreshToken });
 };
 
+// Route is guarded by checkRole(["superadmin"]).
 export const addAdmin = async (req, res) => {
-  try {
-    const { username, email, password, role } = req.body;
-
-    if (!username || !email || !password) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    // Check if user is authenticated
-    if (!req.user) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    console.log("Authenticated user:", req.user);
-
-    // Check if user has superadmin role
-    if (req.user.role !== "superadmin") {
-      return res
-        .status(403)
-        .json({ message: "Only superadmin can add admins" });
-    }
-
-    const existingAdmin = await Admin.findOne({ email });
-    if (existingAdmin) {
-      return res.status(400).json({ message: "Admin already exists" });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newAdmin = new Admin({
-      username,
-      email,
-      password: hashedPassword,
-      role: role || "admin",
-    });
-
-    await newAdmin.save();
-
-    res.status(201).json({
-      message: "Admin created successfully",
-      admin: {
-        _id: newAdmin._id,
-        username: newAdmin.username,
-        email: newAdmin.email,
-        role: newAdmin.role,
-      },
-    });
-  } catch (error) {
-    console.error("Add admin error:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
+  const { username, email, password, role } = req.body;
+  if (await Admin.exists({ email })) throw conflict("Admin already exists", "ADMIN_EXISTS");
+  const admin = await Admin.create({ username, email, password: await bcrypt.hash(password, 12), role });
+  created(res, { message: "Admin created successfully", admin: view(admin) });
 };

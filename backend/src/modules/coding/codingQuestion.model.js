@@ -53,16 +53,25 @@ const codingQuestionSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    // stdio: the program reads stdin and writes stdout (all new problems).
+    // function: legacy problems whose code defines solve(n, arr), wrapped by the executor.
+    mode: { type: String, enum: ["stdio", "function"], default: "function" },
+    starterCode: { type: Map, of: String, default: {} }, // language -> template
+    timeLimitSec: { type: Number, default: 2 },
+    memoryLimitKb: { type: Number, default: 128000 },
+    published: { type: Boolean, default: true },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Admin",
-      required: true,
+      default: null, // null for seeded problems
     },
   },
   {
     timestamps: true,
   }
 );
+
+codingQuestionSchema.index({ difficulty: 1, tags: 1 });
 
 const CodingQuestion = mongoose.model("CodingQuestion", codingQuestionSchema);
 export default CodingQuestion;

@@ -1,67 +1,45 @@
-import jwt from "jsonwebtoken";
 import User from "../modules/users/user.model.js";
 import Admin from "../modules/admin/admin.model.js";
+import { verifyAccessToken, tokenFromRequest } from "../modules/auth/tokens.js";
+import { unauthorized } from "../shared/errors.js";
+
+// Resolve the user for an access token. Tokens issued before the typ claim
+// existed have no typ and are accepted by both guards; the collection lookup
+// still keeps users and admins apart.
+export async function userFromToken(token) {
+  if (!token) throw unauthorized("Not authorized, no token", "NO_TOKEN");
+  const decoded = verifyAccessToken(token);
+  if (decoded.typ && decoded.typ !== "user") throw unauthorized("Wrong token type", "TOKEN_INVALID");
+  const user = await User.findById(decoded.userId).select("-refreshTokens -submissions");
+  if (!user) throw unauthorized("User not found", "USER_NOT_FOUND");
+  return user;
+}
 
 export const protectRoutes = async (req, res, next) => {
-  try {
-    let token;
-    
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      token = authHeader.split(" ")[1];
+  req.user = await userFromToken(tokenFromRequest(req));
+  next();
+};
+
+// Attaches req.user when a valid token is present, otherwise continues anonymously.
+export const optionalAuth = async (req, res, next) => {
+  const token = tokenFromRequest(req);
+  if (token) {
+    try {
+      req.user = await userFromToken(token);
+    } catch {
+      // invalid token: treat as anonymous
     }
-
-    if (!token && req.cookies) {
-      token = req.cookies.jwt;
-    }
-
-    if (!token) {
-      return res.status(401).json({ message: "Not authorized, no token" });
-    }
-
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    const user = await User.findById(decoded.userId).select("-password");
-
-    if (!user) {
-      return res.status(401).json({ message: "User not found" });
-    }
-
-    req.user = user;
-    next();
-  } catch (error) {
-    console.error("Auth middleware error:", error);
-    res.status(401).json({ message: "Not authorized, token failed" });
   }
+  next();
 };
 
 export const protectAdminRoutes = async (req, res, next) => {
-  try {
-    let token;
-    
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      token = authHeader.split(" ")[1];
-    }
-
-    if (!token && req.cookies) {
-      token = req.cookies.jwt;
-    }
-
-    if (!token) {
-      return res.status(401).json({ message: "Not authorized, no token" });
-    }
-
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    const admin = await Admin.findById(decoded.userId).select("-password");
-
-    if (!admin) {
-      return res.status(401).json({ message: "Not authorized as admin" });
-    }
-
-    req.user = admin;
-    next();
-  } catch (error) {
-    console.error("Admin auth middleware error:", error);
-    res.status(401).json({ message: "Not authorized, token failed" });
-  }
+  const token = tokenFromRequest(req);
+  if (!token) throw unauthorized("Not authorized, no token", "NO_TOKEN");
+  const decoded = verifyAccessToken(token);
+  if (decoded.typ && decoded.typ !== "admin") throw unauthorized("Not authorized as admin", "NOT_ADMIN");
+  const admin = await Admin.findById(decoded.userId);
+  if (!admin) throw unauthorized("Not authorized as admin", "NOT_ADMIN");
+  req.user = admin;
+  next();
 };

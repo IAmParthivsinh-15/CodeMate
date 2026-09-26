@@ -1,83 +1,36 @@
-import CodingQuestion from "./codingQuestion.model.js";
 import crypto from "crypto";
+import CodingQuestion from "./codingQuestion.model.js";
+import { ok, created } from "../../shared/http.js";
+import { badRequest, notFound } from "../../shared/errors.js";
 
 export const addQuestion = async (req, res) => {
-  try {
-    const {
-      title,
-      slug,
-      statement,
-      inputFormat,
-      outputFormat,
-      constraints,
-      samples,
-      testcases,
-      difficulty,
-      tags,
-    } = req.body;
-
-    if (
-      !title ||
-      !statement ||
-      !inputFormat ||
-      !outputFormat ||
-      !constraints ||
-      !difficulty ||
-      !samples ||
-      !testcases ||
-      !slug
-    ) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    const newQuestion = new CodingQuestion({
-      title,
-      slug,
-      statement,
-      inputFormat,
-      outputFormat,
-      constraints,
-      samples,
-      testcases,
-      difficulty,
-      tags: tags || [],
-      createdBy: req.user._id,
-    });
-
-    const savedQuestion = await newQuestion.save();
-    res.status(201).json({
-      message: "Question added successfully",
-      question: savedQuestion,
-    });
-  } catch (error) {
-    console.error("Error adding question:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
+  const question = await CodingQuestion.create({ ...req.body, createdBy: req.user._id });
+  created(res, { message: "Question added successfully", question });
 };
 
+// Legacy random pick. `difficulty` may be in the query (correct for GET) or,
+// for old clients, the body.
 export const getAquestion = async (req, res) => {
-  try {
-    const { difficulty } = req.body;
-    if (!difficulty) {
-      return res.status(400).json({ message: "Difficulty is required" });
-    }
-    const questions = await CodingQuestion.find({ difficulty }).populate(
-      "createdBy"
-    );
-    if (questions.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No questions found for this difficulty" });
-    }
+  const difficulty = req.query?.difficulty || req.body?.difficulty;
+  if (!difficulty) throw badRequest("Difficulty is required", undefined, "DIFFICULTY_REQUIRED");
+  const count = await CodingQuestion.countDocuments({ difficulty });
+  if (!count) throw notFound("Question for this difficulty", "NO_QUESTIONS");
+  const question = await CodingQuestion.findOne({ difficulty }).skip(crypto.randomInt(0, count)).populate("createdBy", "username email");
+  ok(res, { message: "Question fetched successfully", question });
+};
 
-    const randomInd = crypto.randomInt(0, questions.length);
-    const randomQuestion = questions[randomInd];
-    res.status(200).json({
-      message: "Question fetched successfully",
-      question: randomQuestion,
-    });
-  } catch (error) {
-    console.error("Error fetching question:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
+export const listAll = async (req, res) => {
+  ok(res, { questions: await CodingQuestion.find().sort({ createdAt: -1 }).select("-testcases") });
+};
+
+export const updateQuestion = async (req, res) => {
+  const q = await CodingQuestion.findByIdAndUpdate(req.params.id, { $set: req.body }, { new: true, runValidators: true });
+  if (!q) throw notFound("Question");
+  ok(res, { question: q });
+};
+
+export const deleteQuestion = async (req, res) => {
+  const q = await CodingQuestion.findByIdAndDelete(req.params.id);
+  if (!q) throw notFound("Question");
+  ok(res, { message: "Question deleted" });
 };
