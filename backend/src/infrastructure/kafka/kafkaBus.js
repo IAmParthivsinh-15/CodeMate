@@ -1,3 +1,5 @@
+import { TOPICS } from "../../shared/events.js";
+
 // Kafka implementation of the event bus (kafkajs). Loaded only when
 // KAFKA_BROKERS is configured.
 export class KafkaBus {
@@ -16,6 +18,18 @@ export class KafkaBus {
     await this.producer.connect();
     this.admin = this.kafka.admin();
     await this.admin.connect();
+    await this.ensureTopics();
+  }
+
+  // Idempotent: existing topics are left alone. Brokers with auto-creation
+  // disabled (recommended) need the topics to exist before consumers join.
+  async ensureTopics(numPartitions = 3) {
+    const existing = new Set(await this.admin.listTopics());
+    const missing = Object.values(TOPICS).filter((t) => !existing.has(t));
+    if (missing.length) {
+      await this.admin.createTopics({ waitForLeaders: true, topics: missing.map((topic) => ({ topic, numPartitions })) });
+      this.log.info({ topics: missing }, "Created Kafka topics");
+    }
   }
 
   async publish(topic, event, key) {
@@ -28,7 +42,9 @@ export class KafkaBus {
   async subscribe(topic, groupId, handler, { retries = 2 } = {}) {
     const consumer = this.kafka.consumer({ groupId, allowAutoTopicCreation: true });
     await consumer.connect();
-    await consumer.subscribe({ topic, fromBeginning: false });
+    // fromBeginning only applies to a brand-new group (no committed offset yet):
+    // events published before the group first started are still processed.
+    await consumer.subscribe({ topic, fromBeginning: true });
     await consumer.run({
       eachMessage: async ({ message }) => {
         const event = JSON.parse(message.value.toString());

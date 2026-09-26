@@ -1,6 +1,20 @@
+# Non-secret configuration shared by every backend role.
+# Stateful services are expected to be managed (MongoDB Atlas, managed Redis,
+# managed Kafka, Qdrant Cloud) rather than self-hosted in the cluster (spec §45).
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: codemate-backend-config
+  name: codemate-config
+  namespace: codemate
 data:
+  NODE_ENV: "production"
   PORT: "5050"
+  LOG_LEVEL: "info"
+  CORS_ORIGINS: "https://codemate.example.com"
+  KAFKA_CLIENT_ID: "codemate"
+  ENGINE_POOL_SIZE: "2"
+  ANALYSIS_DEPTH: "14"
+  AUTO_ANALYZE: "true"
+  LLM_PROVIDER: "none"          # groq | nvidia | gemini (key goes in the Secret)
+  EMBEDDING_PROVIDER: "local"   # local | gemini | nvidia
+  METRICS_ENABLED: "true"

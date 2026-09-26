@@ -1,0 +1,8 @@
+# Normalise text to LF in the repo so files copied into Linux containers
+# (nginx.conf, shell scripts, YAML) never carry CRLF.
+* text=auto eol=lf
+*.exe binary
+backend/engine/stockfish binary
+*.png binary
+*.jpg binary
+*.ico binary

@@ -1,6 +1,0 @@
-Dockerfile
-node_modules
-# Never bake local secrets into the image
-.env
-.env.*
-!.env.example

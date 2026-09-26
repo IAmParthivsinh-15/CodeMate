@@ -1,6 +1,6 @@
 # CodeMate — Phase 0 and Phase 1 Implementation Plan
 
-> **Status:** Proposed. Waiting for review before any implementation starts.
+> **Status:** Implemented (2026-09-26), along with phases 2–17. Decisions taken: D1 (b) new `/api/games/*` plus legacy routes, D2 zod, D3 vitest, D4 httpOnly cookies + Vite proxy (plus Bearer), D5 pino. Deviations and the current state are in [implementation-status.md](./implementation-status.md).
 > **Based on:** [gap-analysis.md](./gap-analysis.md)
 > **Rule from the spec:** finish Phase 0 before starting Phase 1, and don't start Phase 2 until Phase 1 meets its acceptance criteria.
 

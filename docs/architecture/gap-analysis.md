@@ -1,5 +1,7 @@
 # CodeMate — Gap Analysis (Phase 0 audit)
 
+> **Historical record.** This is the audit taken *before* implementation. Every defect listed here has since been fixed; see [implementation-status.md](./implementation-status.md) for the current state.
+
 > **Date:** 2026-09-26
 > **Compared against:** [ENHANCEMENT.md](../../ENHANCEMENT.md)
 > **Branch:** `restructure/phase-0`

@@ -1,202 +1,141 @@
 # CodeMate Backend
 
-A comprehensive learning platform combining chess gaming and coding challenges, built with Node.js, Express, MongoDB, Stockfish engine, and Google's Gemini AI.
+Node.js (ES modules) + Express 5 API, Socket.IO gateway and event workers for CodeMate. It's a **modular monolith**: one codebase that runs as a single process in development, or as separate `api` / `realtime` / `worker` roles in production.
 
-## 🚀 Technology Stack
+- Architecture: [docs/architecture/overview.md](../docs/architecture/overview.md)
+- REST API: [docs/api/api.md](../docs/api/api.md)
+- WebSocket protocol: [docs/websocket/protocol.md](../docs/websocket/protocol.md)
+- Events: [docs/events/kafka-events.md](../docs/events/kafka-events.md)
+- RAG: [docs/rag/](../docs/rag/)
 
-- **Runtime**: Node.js v20.11.1
-- **Framework**: Express.js
-- **Database**: MongoDB
-- **Chess Engine**: Stockfish
-- **AI Assistant**: Google Gemini Pro
-- **Authentication**: JWT (Access & Refresh Tokens)
-- **Container**: Docker
-- **Orchestration**: Kubernetes
+## Quick start
 
-## 📁 Project Structure
+Requirements: **Node 20+** and **MongoDB** (local, Docker, or Atlas). Nothing else is required: Redis, Kafka, Qdrant, the LLM provider and Judge0 are optional, and in-process fallbacks take over when they aren't configured ([ADR 0002](../docs/decisions/0002-optional-infrastructure-with-in-process-fallbacks.md)).
 
-The backend is a **modular monolith**: code is grouped by feature, not by layer. See [ADR 0001](../docs/decisions/0001-modular-monolith-layout.md) for the reasoning.
-
-```
-backend/
-├── engine/
-│   ├── stockfish                      # Linux Stockfish executable
-│   └── stockfish.exe                  # Windows Stockfish executable
-├── src/
-│   ├── server.js                      # Entry point: loads .env, connects MongoDB, starts HTTP
-│   ├── routes/
-│   │   └── index.js                   # Mounts every module router at its URL prefix
-│   ├── middleware/
-│   │   ├── auth.js                    # protectRoutes / protectAdminRoutes (JWT)
-│   │   └── checkRole.js               # Role guard (admin / superadmin)
-│   ├── modules/
-│   │   ├── auth/                      # register, login, refresh, logout, me + JWT helpers (tokens.js)
-│   │   ├── users/                     # User model
-│   │   ├── admin/                     # Admin model, login, add-admin
-│   │   ├── games/                     # GameSession model, start / save / end, bot move
-│   │   ├── chess/                     # Engine debug endpoint
-│   │   ├── analysis/                  # GameAnalysis model, Stockfish + Gemini analysis
-│   │   └── coding/                    # CodingQuestion model, questions, code execution
-│   └── infrastructure/
-│       ├── mongodb/connection.js      # Mongoose connection
-│       ├── stockfish/chessEngine.js   # UCI wrapper around the Stockfish binary
-│       ├── judge0/codeExecutor.js     # Judge0 (RapidAPI) client
-│       └── llm/geminiService.js       # Gemini report generation
-├── .env.example                       # Required environment variables
-└── Dockerfile
-```
-
-Kubernetes manifests are at [`infrastructure/kubernetes/`](../infrastructure/kubernetes/) in the repo root.
-
-> Run the server from `backend/`. `npm start` and `npm run dev` already do this, and the Stockfish binary is found relative to the current working directory.
-
-## 🎮 Chess Features
-
-### Game Analysis
-- Real-time position evaluation
-- Move accuracy calculation
-- Best move suggestions
-- AI-powered game reports
-- Historical analysis storage
-
-### Difficulty Levels
-- Beginner (ELO ~1000)
-- Intermediate (ELO ~1500)
-- Advanced (ELO ~1800)
-- Master (ELO ~2100)
-- Grandmaster (ELO ~2400)
-- Legendary (ELO ~2700)
-
-## 💻 Coding Features
-
-### Code Execution
-- Multiple language support (JavaScript, Python, Java, C++)
-- Real-time compilation and execution
-- Test case validation
-- Performance metrics
-
-### Problem Difficulty
-- Beginner
-- Intermediate
-- Advanced
-- Master
-- Grandmaster
-- Legendary
-
-## 🤖 AI Integration
-
-### Game Analysis
-```javascript
-{
-  "summary": "Game analysis summary",
-  "strengths": ["Positional play", "Endgame technique"],
-  "weaknesses": ["Tactical awareness", "Time management"],
-  "keyInsights": [
-    {
-      "moveNumber": 15,
-      "playerMove": "e4",
-      "bestMove": "d4",
-      "explanation": "Strategic explanation"
-    }
-  ],
-  "trainingRecommendations": ["Focus areas"]
-}
-```
-
-## 📊 Database Schemas
-
-### Game Analysis Model
-```javascript
-{
-  gameSession: ObjectId,
-  playerAccuracy: Number,
-  computerAccuracy: Number,
-  bestMoveCount: Number,
-  inaccuracies: Number,
-  mistakes: Number,
-  blunders: Number,
-  moveAnalysis: [{
-    moveNumber: Number,
-    playerMove: String,
-    bestMove: String,
-    accuracy: Number,
-    classification: String,
-    fenBefore: String,
-    fenAfter: String,
-    evaluationBefore: Number,
-    evaluationAfter: Number
-  }],
-  geminiReport: {
-    summary: String,
-    strengths: [String],
-    weaknesses: [String],
-    keyInsights: Array,
-    trainingRecommendations: [String]
-  }
-}
-```
-
-## 🔑 Environment Variables
-
-Copy [`.env.example`](./.env.example) to `.env` and fill it in. Never commit `.env`.
-
-| Variable | Required | Used by |
-| :-- | :-- | :-- |
-| `PORT` | yes | HTTP server |
-| `MONGO_URL` | yes | MongoDB connection |
-| `ACCESS_TOKEN_SECRET` | yes | Access JWT signing and verification |
-| `ACCESS_TOKEN_EXPIRES_IN` | no (default `15m`) | Access JWT lifetime |
-| `REFRESH_TOKEN_SECRET` | yes | Refresh JWT signing and verification |
-| `REFRESH_TOKEN_EXPIRES_IN` | yes | Refresh JWT lifetime |
-| `JUDGE0_API_URL` | for code execution | Judge0 base URL |
-| `JUDGE0_API_KEY` | for code execution | RapidAPI key |
-| `GEMINI_API_KEY` | for AI reports | Gemini client |
-| `NODE_ENV` | no | Adds error details to code-execution failures when `development` |
-
-## 🚀 API Endpoints
-
-The full, current reference is in [docs/api/api.md](../docs/api/api.md).
-
-| Prefix | Module |
-| :-- | :-- |
-| `/api/auth` | register, login, refresh, logout, me |
-| `/api/admin` | admin login, add admin |
-| `/api/game` | start, save, end |
-| `/api/game-analysis` | analyze |
-| `/api/coding-questions` | add-question, get-a-question |
-| `/api/code` | execute |
-
-Known defects and the plan to fix them: [gap analysis](../docs/architecture/gap-analysis.md), [Phase 0/1 plan](../docs/architecture/phase-0-1-plan.md).
-
-## 🔄 Development
-
-1. Install dependencies:
 ```bash
+cd backend
 npm install
+cp .env.example .env        # set MONGO_URL and the two *_TOKEN_SECRET values
+npm run seed:problems       # optional: 8 starter coding problems
+npm run dev                 # http://localhost:5050
 ```
 
-2. Setup environment:
+On startup the log lists which backends are active, and `GET /ready` reports them:
+
+```json
+{ "status": "ready", "backends": { "kv": "memory", "events": "memory", "vector": "memory", "llm": "none" } }
+```
+
+The chess knowledge corpus (`../ai/corpus`) is ingested automatically the first time, in about 1 s with local embeddings.
+
+## Scripts
+
+| Script | What it does |
+| :-- | :-- |
+| `npm run dev` | All roles in one process, auto-restart (nodemon) |
+| `npm start` | Same, without nodemon (`SERVICE_ROLE` defaults to `all`) |
+| `npm run start:api` / `start:realtime` / `start:worker` | One role each ([service boundaries](../docs/architecture/service-boundaries.md)) |
+| `npm run start:otel` | Start with OpenTelemetry auto-instrumentation (set the `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME` env vars) |
+| `npm test` | Vitest: unit + integration (in-memory MongoDB, real Stockfish) |
+| `npm run test:unit` | Unit tests only (no database needed) |
+| `npm run lint` | ESLint |
+| `npm run seed:admin` | Create the first superadmin (`SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`) |
+| `npm run seed:problems` | Upsert the starter coding problems |
+| `npm run ingest [-- --force]` | Chess knowledge ingestion (only changed chunks are embedded) |
+| `npm run rag:eval [-- --k 4]` | Retrieval evaluation against `ai/evaluation/chess-rag-eval.json` |
+| `npm run stats:rebuild [-- <userId>]` | Recompute dashboard aggregates from source data |
+
+## Configuration
+
+Every variable is declared and validated in [`src/config/env.js`](./src/config/env.js). Invalid configuration stops the process with one message listing every problem. [`.env.example`](./.env.example) documents them all, grouped:
+
+- **Required:** `MONGO_URL`, `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET` (each secret at least 16 characters).
+- **Roles:** `SERVICE_ROLE`, `WORKERS`.
+- **Infrastructure:** `REDIS_URL`, `KAFKA_BROKERS`, `VECTOR_DB_URL`, `JUDGE0_API_URL` (+ key and host).
+- **AI:** `LLM_PROVIDER`, `LLM_MODEL[_SMALL|_MEDIUM|_LARGE]`, the provider keys, `EMBEDDING_PROVIDER`.
+- **Engine:** `STOCKFISH_PATH`, `ENGINE_POOL_SIZE`, `ANALYSIS_DEPTH`, `AUTO_ANALYZE`.
+
+> Running more than one `api`/`realtime` instance requires `REDIS_URL`. Running separate worker processes requires `KAFKA_BROKERS`.
+
+## Layout
+
+```text
+src/
+├── server.js                # role-aware bootstrap and graceful shutdown
+├── app.js                   # Express app (helmet, CORS, logging, metrics, rate limits, routes, errors)
+├── entry/                   # api.js / realtime.js / worker.js: role entry points
+├── config/                  # env.js (validated env), analysis.js (classification thresholds, themes)
+├── routes/index.js          # mounts module routers; /health, /ready, /metrics
+├── middleware/              # auth, roles, validate (zod), rateLimit, requestId, errorHandler
+├── shared/                  # errors (AppError), http helpers, event names and envelope
+├── sockets/                 # Socket.IO gateway, sweeper, per-user notifications
+├── workers/                 # event consumers: analysis, ai, coding, analytics
+├── modules/
+│   ├── auth/  users/  admin/
+│   ├── games/               # authoritative game service, online rooms, schemas, legacy routes
+│   ├── chess/               # openings (ECO), debug engine endpoint
+│   ├── ratings/             # Elo, rating history
+│   ├── analysis/            # structured Stockfish analysis
+│   ├── matchmaking/         # Redis sorted-set queues
+│   ├── learning/            # puzzles from mistakes
+│   ├── ai/                  # Game RAG, Chess RAG (rag/), explain-move, coach, grounding, prompts
+│   ├── coding/              # problems, submissions, legacy execute
+│   └── analytics/           # dashboard, statistics, leaderboard, UserStats aggregates
+└── infrastructure/
+    ├── mongodb/ redis/ kafka/ vector/
+    ├── stockfish/           # UCI engine + pool, UCI parsing
+    ├── judge0/              # Judge0 client (stdio + legacy function mode)
+    ├── llm/                 # provider-agnostic gateway (groq, nvidia, gemini)
+    ├── embeddings/          # local hashing embedder, remote providers
+    ├── metrics/             # Prometheus registry
+    └── logger/              # pino
+engine/                      # Stockfish 17.1 binaries (Linux ELF, Windows exe)
+scripts/                     # seeding, ingestion, evaluation, maintenance
+tests/                       # unit/ and integration/ (vitest + supertest + socket.io-client)
+```
+
+**Conventions.**
+
+- Files are named `<name>.routes.js`, `.controller.js`, `.service.js`, `.model.js` and `.schema.js` (zod).
+- Controllers throw `AppError`s (Express 5 forwards async errors). They never hand-build error JSON.
+- Modules import other modules' models and services, never their controllers.
+
+## How the pieces work
+
+- **Games are server-authoritative.** Each move replays the stored game with chess.js, checks whose turn it is and whether the move is legal, then writes with `findOneAndUpdate({ _id, ply })` (optimistic concurrency). Results, clocks, stats and Elo are all computed on the server.
+- **Stockfish.** A fixed pool (`ENGINE_POOL_SIZE`) of UCI processes, with searches serialised per process. Analysis evaluates every position once, in parallel. Classifications use the win-probability drop, with thresholds in `config/analysis.js`.
+- **Async pipeline.** A finished game publishes `game.finished`, which triggers analysis, puzzles, `analysis.completed`, the AI report and analytics. Code submissions follow the same pattern through Judge0 ([data flows](../docs/architecture/data-flow.md)).
+- **AI.** Rules route questions and select the facts. The LLM only phrases them, its JSON is validated, and a grounding guard discards any invented evaluation. With no LLM configured, deterministic answers are returned ([ADR 0004](../docs/decisions/0004-grounded-ai-with-deterministic-fallbacks.md)).
+- **Security.**
+  - Passwords are hashed with bcrypt (cost 12). Refresh tokens are stored hashed and rotate on each use.
+  - User and admin JWTs carry a `typ` claim, and each token has a unique `jti`.
+  - Cookies are httpOnly, `SameSite=Strict`, and `Secure` in production.
+  - `helmet`, a CORS allowlist, zod validation on every body/params/query, and Redis-backed rate limits.
+  - Other users' resources return 404. Hidden coding tests are never returned.
+
+## Testing
+
 ```bash
-cp .env.example .env
-# Update environment variables
+npm test                                     # starts an in-memory MongoDB (downloads mongod once)
+MONGOMS_SYSTEM_BINARY=/path/to/mongod npm test   # reuse a local mongod binary instead
+TEST_MONGO_URL=mongodb://127.0.0.1:27017 npm test   # use a running server (CI does this)
 ```
 
-3. Start server:
+There are 67 tests:
+
+- **Unit:** UCI parsing, Elo, openings, classification thresholds, rules, the intent router, grounding, move selection, chunking, embeddings, events.
+- **Integration:** auth, games (AI/local/legacy), the full finished-game → analysis → puzzles → AI report → dashboard → coach pipeline, the RAG endpoints and grounding guard, coding with a fake Judge0, and Socket.IO multiplayer (rooms, duplicate moves, draws, resignation, reconnect, matchmaking).
+
+## Docker and Kubernetes
+
+The image is built from the **repo root**, because it needs `ai/`:
+
 ```bash
-npm run dev
+docker build -f infrastructure/docker/backend/Dockerfile -t codemate-backend .
+docker compose up --build                       # full stack at http://localhost:8080 (see root README)
+kubectl apply -k infrastructure/kubernetes      # after creating the Secret from secret.example.yaml
 ```
 
-## 🐳 Docker & Kubernetes
+## Legacy API
 
-Build and deploy:
-```bash
-# Docker
-docker build -t codemate-backend .
-docker run -p 5050:5050 codemate-backend
-
-# Kubernetes (from the repo root)
-kubectl apply -f infrastructure/kubernetes/
-```
-
-`infrastructure/kubernetes/secret.yaml` is gitignored. Create it locally with your own base64-encoded values, and never commit it.
-
+The pre-Phase-0 routes (`/api/game/*`, `/api/game-analysis/*`, `/api/code/execute`) still work, backed by the new services. See the "Legacy endpoints" section of the [API reference](../docs/api/api.md) for the few behaviour changes.
