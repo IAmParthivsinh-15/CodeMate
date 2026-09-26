@@ -10,6 +10,7 @@ import { publish } from "../../infrastructure/kafka/index.js";
 import { TOPICS } from "../../shared/events.js";
 import { badRequest, conflict, forbidden, notFound } from "../../shared/errors.js";
 import { childLogger } from "../../infrastructure/logger/index.js";
+import { env } from "../../config/env.js";
 import { metrics } from "../../infrastructure/metrics/index.js";
 
 const log = childLogger("games");
@@ -20,6 +21,7 @@ const log = childLogger("games");
 // result is ever read from the client.
 
 export const LIVE_STATE_TTL_SEC = 6 * 3600;
+export const MIN_PLIES_FOR_AUTO_ANALYSIS = 6;
 export const DEADLINES_KEY = "clock:deadlines";
 const stateKey = (gameId) => `game:${gameId}:state`;
 
@@ -321,6 +323,11 @@ export async function finishGame(gameId, { result, reason }) {
     { new: true }
   );
   if (!finished) return GameSession.findById(gameId); // someone else finished it
+  // The analysis worker will pick this game up (workers/index.js, same rule),
+  // so clients see "pending" immediately instead of a misleading "none".
+  if (!aborted && env.AUTO_ANALYZE && finished.ply >= MIN_PLIES_FOR_AUTO_ANALYSIS && finished.analysisStatus === "none") {
+    finished.analysisStatus = "pending";
+  }
 
   const chess = replay(finished);
   finished.pgn = await buildPgn(finished, chess);

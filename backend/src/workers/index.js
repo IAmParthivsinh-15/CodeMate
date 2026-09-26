@@ -6,6 +6,7 @@ import { childLogger } from "../infrastructure/logger/index.js";
 import { metrics } from "../infrastructure/metrics/index.js";
 import GameSession from "../modules/games/gameSession.model.js";
 import { analyzeGame } from "../modules/analysis/analysis.service.js";
+import { MIN_PLIES_FOR_AUTO_ANALYSIS } from "../modules/games/game.service.js";
 import { generatePuzzlesForGame } from "../modules/learning/puzzle.service.js";
 import { generateAnalysisReport } from "../modules/ai/ai.service.js";
 import { processSubmission } from "../modules/coding/coding.service.js";
@@ -13,7 +14,6 @@ import { applyAnalysisToStats, applyChatToStats, invalidateDashboard } from "../
 import { notifyUser } from "../sockets/notify.js";
 
 const log = childLogger("workers");
-const MIN_PLIES_FOR_AUTO_ANALYSIS = 6;
 
 // Every handler is idempotent: Kafka delivers at least once.
 const instrument = (topic, group, fn) => async (event) => {

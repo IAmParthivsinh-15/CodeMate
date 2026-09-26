@@ -255,6 +255,8 @@ interface AiAnswer {
 | GET | `/submissions` | `?problemId&status&page&limit`: items without code or test results |
 | GET | `/submissions/:id` | `{ submission: { _id, problem: { title, slug, difficulty }, language, kind, status, passedCount, totalCount, score, executionTime, memory, compileOutput, testResults: [{ index, hidden, input?, expected?, output?, status, passed, time, memory, error? }], firstAccept, code, createdAt, completedAt } }` |
 
+Problem `difficulty` reuses the chess level names: `beginner | intermediate | advanced | master | grandmaster | legendary`.
+
 Submission `status` is one of `queued`, `running`, `accepted`, `wrong_answer`, `compilation_error`, `runtime_error`, `time_limit_exceeded`, `memory_limit_exceeded`, `internal_error` or `unavailable`. Poll until it's no longer `queued` or `running`, or listen for `submission:update`. A problem's first accepted submit earns **one hint credit** (up to 5).
 
 ## Dashboard and leaderboard

@@ -36,8 +36,9 @@ async function pair() {
 }
 
 describe("P2P multiplayer over Socket.IO (spec §10, §37)", () => {
-  it("rejects unauthenticated sockets", async () => {
-    await expect(open("not-a-token")).rejects.toThrow();
+  it("rejects unauthenticated sockets with a precise code", async () => {
+    const err = await open("not-a-token").catch((e) => e);
+    expect(err.data.code).toBe("TOKEN_INVALID");
   });
 
   it("creates a room, joins, and relays server-validated moves", async () => {

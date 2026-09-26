@@ -55,7 +55,7 @@ describe("AI games (server authoritative)", () => {
     const id = (await t.api().post("/api/games").set(auth).send({ mode: "ai", difficulty: "beginner" })).body.game._id; // bot Elo 1000 vs 800
     await t.api().post(`/api/games/${id}/moves`).set(auth).send({ move: { san: "e4" } });
     const res = await t.api().post(`/api/games/${id}/resign`).set(auth);
-    expect(res.body.game).toMatchObject({ status: "completed", result: "0-1", endReason: "resignation" });
+    expect(res.body.game).toMatchObject({ status: "completed", result: "0-1", endReason: "resignation", analysisStatus: "none" }); // 3 plies: below the auto-analysis minimum
     expect(res.body.game.pgn).toContain('[Result "0-1"]');
     expect(res.body.game.ratingChange.white).toBe(-10); // K=40 × (0 − 0.24)
     const u = await User.findById(user._id).lean();

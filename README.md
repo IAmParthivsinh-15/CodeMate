@@ -1,211 +1,100 @@
 # CodeMate ♟️<>💻
 
-> Where Chess Strategy Meets Coding Prowess.
+> **Chess × Code × AI**: play, analyse, learn, practise, improve.
 
-CodeMate is a unique, gamified platform designed for individuals who love the intellectual challenge of both chess and programming. It merges the strategic world of chess with the problem-solving realm of coding, creating a one-of-a-kind training ground for your mind.
+CodeMate is a learning platform for people who love chess and programming. Play Stockfish, a friend on the same device, or opponents online in real time. Every finished game is analysed by Stockfish move by move, and an AI coach explains your mistakes using the engine's facts. Your mistakes become puzzles. Coding problems earn you engine hints: **solve code to unlock chess help**.
 
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
-![Express.js](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![Kafka](https://img.shields.io/badge/Kafka-231F20?style=for-the-badge&logo=apachekafka&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)
 
 ---
 
-## ✨ Core Concept
+## What you can do
 
-Ever been stuck in a chess game, wishing for a hint? In CodeMate, you don't just get one—you **earn** it.
+| | |
+| :-- | :-- |
+| **Play** | Against Stockfish at six levels (Elo 1000–2700), pass-and-play on one device, or online: private rooms with a code, or rated/casual quick match with clocks. |
+| **Analyse** | Every finished game is analysed in the background: accuracy, centipawn loss, best moves, lines, and classifications from *book* to *blunder*, with themes such as "hanging piece" or "allowed mate". |
+| **Ask about your game** | "Why was move 23 a mistake?", "Where did I lose the advantage?", "Did I repeat the same mistake?" The AI answers from Stockfish's facts about *your* game and never invents evaluations. |
+| **Explain this move** | One click gives: what happened, why it matters, the better move, the concept, and what to look for next time. |
+| **Practise your mistakes** | Positions where you went wrong become puzzles. Find the move Stockfish wanted. |
+| **Learn chess** | Ask general questions ("What is zugzwang?", "Explain the Lucena position") answered from a 47-topic chess guide, with sources. |
+| **Get coached** | A personal report built only from your stored games: strengths, weaknesses, recurring mistakes, trends per skill, recommended study and puzzles, and a training plan. |
+| **Code for hints** | Solve coding problems (JavaScript, Python, Java, C++) judged in a sandbox. Each new problem solved earns a Stockfish hint for your games. |
+| **Track progress** | A dashboard with rating history, accuracy, mistake distribution, openings, coding stats and leaderboards. |
 
-When playing against our AI bot, you can request a hint for the best next move. To unlock it, you must solve a randomly assigned coding challenge. Your code is submitted and validated in real-time. If you succeed, the Stockfish engine provides you with a strategic move. Fail, and you're back to the board on your own!
+## Run it
 
-This core loop turns every game into a dynamic test of both your logical and strategic skills.
+**Everything with Docker** (MongoDB, Redis, Kafka, Qdrant, API, realtime gateway, workers, frontend):
 
-## 🚀 Key Features
-
-*   **Play Chess**: Enjoy a clean chess interface to play against our powerful bot or in a classic pass-and-play mode with a friend.
-*   **Code for a Hint**: The signature feature. When playing the bot, solve a coding problem to receive a hint from the world-class Stockfish chess engine.
-*   **Real-time Code Evaluation**: Code submissions are planned to be evaluated instantly using the **Judge0** API, supporting multiple programming languages.
-*   **User Profiles & Analytics**: (Upcoming) Track your chess ELO, your coding problem success rate, and see detailed performance analysis.
-
-## 🎮 Chess Features
-
-### Game Analysis
-- Real-time position evaluation using Stockfish
-- Move accuracy calculation and classification
-- Best move suggestions with explanations
-- AI-powered game reports via Google Gemini
-- Historical analysis storage and replay
-
-### Difficulty Levels
-- 🌱 Beginner (ELO ~1000)
-- 📚 Intermediate (ELO ~1500)
-- 🎯 Advanced (ELO ~1800)
-- 🏆 Master (ELO ~2100)
-- 👑 Grandmaster (ELO ~2400)
-- ⚡ Legendary (ELO ~2700)
-
-## 💻 Coding Challenge System
-
-### Supported Languages
-- JavaScript/Node.js
-- Python
-- Java
-- C++
-
-### Challenge Categories
-- Arrays & Strings
-- Dynamic Programming
-- Graph Algorithms
-- Data Structures
-- Algorithmic Puzzles
-
-### Difficulty Progression
-- Each difficulty level unlocks progressively
-- Hints cost increases with difficulty
-- Special achievements for no-hint victories
-
-## 🤖 AI Integration
-
-### Chess Analysis
-```json
-{
-  "summary": "Game analysis summary",
-  "strengths": ["Positional play", "Endgame technique"],
-  "weaknesses": ["Tactical awareness", "Time management"],
-  "keyInsights": [
-    {
-      "moveNumber": 15,
-      "playerMove": "e4",
-      "bestMove": "d4",
-      "explanation": "Strategic explanation"
-    }
-  ],
-  "recommendations": ["Training suggestions"]
-}
+```bash
+cp .env.example .env              # set ACCESS_TOKEN_SECRET and REFRESH_TOKEN_SECRET
+docker compose up --build         # → http://localhost:8080
+docker compose --profile observability up   # + Prometheus :9090 and Grafana :3000
 ```
 
-### Code Analysis
-- Syntax validation
-- Time complexity analysis
-- Space complexity feedback
-- Code style recommendations
-- Alternative solution suggestions
+**Development** (only MongoDB needed; everything else falls back to in-process versions):
 
-## 📊 Project Status
+```bash
+cd backend && npm install && cp .env.example .env && npm run seed:problems && npm run dev   # :5050
+cd frontend && npm install && npm run dev                                                   # :5173
+```
 
-The project is divided into a backend service and a frontend client.
+Optional: set `LLM_PROVIDER` (Groq, NVIDIA or Gemini) for natural-language AI answers; without it, answers are composed directly from engine facts. Set `JUDGE0_API_URL` to run code submissions.
 
-### ✅ Backend (Functionally Complete)
-
-The backend is robust and ready. It handles all core logic, from user authentication to chess game state management.
-
-*   **Tech Stack**: Node.js, Express.js, MongoDB
-*   **Features**:
-    *   Secure User Authentication (JWT)
-    *   Full Chess Game Logic (move validation, check/checkmate detection)
-    *   Game State Management & Database Integration
-    *   **Stockfish Engine Integrated** for bot moves.
-*   **DevOps**: The entire backend is containerized with **Docker** and orchestrated using **Kubernetes** for scalability and reliability.
-
-> For a deep dive into the API, architecture, and setup, please see the **[backend/README.md](./backend/README.md)**.
-
-### 🔜 Frontend (Planned)
-
-The user interface is the next major milestone.
-
-*   **Tech Stack**: React with TypeScript
-*   **Status**: Development has not yet begun. The focus is on building a clean, intuitive, and responsive UI.
-*   **Planned Features**:
-    *   Chessboard interface
-    *   User profile section
-    *   Statistics and game history tracking
-    *   In-game code editor
-
-## 🗂️ Repository Layout
+## Repository layout
 
 ```text
 CodeMate/
-├── backend/                 # Node.js + Express API (modular monolith): see backend/README.md
-├── frontend/                # React + TypeScript + Vite client (Phase 1)
-├── infrastructure/
-│   └── kubernetes/          # Deployment, Service, ConfigMap (secret.yaml is local-only)
-├── docs/
-│   ├── architecture/        # Gap analysis and the phase-by-phase implementation plan
-│   ├── api/                 # Current REST API reference
-│   └── decisions/           # Architecture decision records (ADRs)
-└── ENHANCEMENT.md           # The engineering specification this project is evolving towards
+├── frontend/          React + TypeScript SPA                        → frontend/README.md
+├── backend/           API, realtime gateway, workers (one codebase) → backend/README.md
+├── ai/                Chess knowledge corpus, prompts, RAG eval set → ai/README.md
+├── infrastructure/    docker/, kubernetes/, kafka/, redis/, prometheus/, grafana/, ci/
+├── docs/              architecture/, api/, websocket/, events/, rag/, decisions/
+├── docker-compose.yml
+└── ENHANCEMENT.md     The engineering specification this project implements
 ```
 
-New top-level folders (`ai/`, `workers/`, and more under `infrastructure/`) are added in the phase that first needs them. Current status and known gaps: **[docs/architecture/gap-analysis.md](./docs/architecture/gap-analysis.md)**.
+## How it's built
 
-## 🛠️ Tech Stack & Tools
+| Area | Technology | Why |
+| :-- | :-- | :-- |
+| Frontend | React 19, TypeScript, Vite, Tailwind, TanStack Query, react-chessboard, CodeMirror | One coherent, responsive product UI |
+| API | Node.js, Express 5, zod, pino | A modular monolith with validated input and consistent errors |
+| Real time | Socket.IO (+ Redis adapter) | Server-authoritative online play, reconnects, presence |
+| Data | MongoDB | The durable source of truth |
+| Live state | Redis | Game state, presence, matchmaking, rate limits, caches |
+| Async | Kafka + workers | Analysis, AI reports, code judging and analytics off the request path |
+| Chess | Stockfish 17.1, chess.js | Deterministic engine facts and rules |
+| AI | LLM gateway (Groq / NVIDIA / Gemini), hybrid BM25 + vector RAG, Qdrant | Grounded explanations, with deterministic fallbacks |
+| Code | Judge0 | Sandboxed execution; user code never runs in the backend |
+| Ops | Docker, Kubernetes, Prometheus, Grafana, OpenTelemetry, GitHub Actions | Reproducible, observable deployments |
 
-| Area      | Technology                                    |
-| :-------- | :-------------------------------------------- |
-| **Frontend**  | React, TypeScript                             |
-| **Backend**   | Node.js, Express.js                           |
-| **Database**  | MongoDB                                       |
-| **Chess AI**  | Stockfish Engine                              |
-| **Code Judge**| **Judge0** (Planned Integration)              |
-| **DevOps**    | Docker, Kubernetes                            |
+The system is **functional first, scalable second, distributed third**. It runs as one process on a laptop and as separately scaled roles in production. Start with [docs/architecture/overview.md](docs/architecture/overview.md).
 
-## 🎯 Performance Metrics
+## Documentation
 
-### Chess Engine
-- Response time: <100ms per move
-- Evaluation depth: Up to 22 ply
-- Multi-threading support
-- Memory usage optimization
+- [Architecture overview](docs/architecture/overview.md) · [Data flows](docs/architecture/data-flow.md) · [Service boundaries](docs/architecture/service-boundaries.md)
+- [REST API](docs/api/api.md) · [WebSocket protocol](docs/websocket/protocol.md) · [Kafka events](docs/events/kafka-events.md)
+- [Game Analysis RAG](docs/rag/game-rag.md) · [Chess Knowledge RAG](docs/rag/chess-rag.md)
+- [Implementation status](docs/architecture/implementation-status.md) (what's done, how it was verified, known limitations)
+- [Architecture decisions](docs/decisions/)
 
-### Code Execution
-- Timeout: 2s per test case
-- Memory limit: 256MB
-- Concurrent execution support
-- Sandbox environment
+## Testing
 
-## 🔐 Security Features
+```bash
+cd backend && npm test      # 67 tests: unit + integration (API, pipeline, RAG, coding, multiplayer)
+cd frontend && npm test     # 50 tests
+```
 
-- JWT-based authentication
-- Rate limiting for API endpoints
-- Input sanitization
-- Secure code execution
-- MongoDB injection prevention
-- CORS policy implementation
+CI is defined in `infrastructure/ci/github-actions-ci.yml`. Copy it to `.github/workflows/` to enable it ([why](docs/decisions/0005-ci-workflow-location.md)).
 
-## 📊 Analytics Dashboard (Upcoming)
+## Contributing
 
-- Personal progress tracking
-- ELO rating history
-- Coding success rate
-- Problem-solving patterns
-- Time management analysis
-- Skill progression maps
-
-## 🗺️ Future Roadmap
-
-CodeMate is just getting started. Here are some of the exciting features planned for the future:
-
-- [ ] **Full Judge0 Integration**: Implement the backend logic to send user code to Judge0 and process the results.
-- [ ] **Code Submission Queue**: A robust queue system to handle concurrent code submissions efficiently.
-- [ ] **Leaderboards**: Separate leaderboards for chess rating and code challenge rankings.
-- [ ] **Challenge System**: A dedicated section with a library of coding challenges of varying difficulty.
-- [ ] **Daily Quests**: "Win a game without hints" or "Solve 3 coding challenges" for daily rewards.
-- [ ] **Full-fledged Profile**: Expanded user profiles with game history, performance graphs, and achievements.
-
-## 🙌 How to Contribute
-
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
-
-If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
-
-1.  **Fork the Project**
-2.  **Create your Feature Branch** 
-3.  **Commit your Changes** 
-4.  **Push to the Branch**
-5.  **Open a Pull Request**
-
-Don't forget to give the project a star! Thanks again!
-
----
+Fork the repository, create a feature branch, and open a pull request. Please run the tests and lint for both packages first. Each phase's "definition of done" is in [ENHANCEMENT.md §61](ENHANCEMENT.md).
