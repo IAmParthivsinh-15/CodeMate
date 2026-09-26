@@ -1,5 +1,5 @@
 import { api } from '../../services/apiClient'
-import type { CodeLanguage, LanguagesResponse, Paginated, Problem, ProblemSummary, Submission } from '../../types/api'
+import type { CodeLanguage, LanguagesResponse, Paginated, Problem, ProblemSummary, RecommendedProblem, Submission } from '../../types/api'
 
 export interface ProblemQuery {
   page?: number
@@ -13,6 +13,7 @@ export const codingApi = {
   languages: () => api.get<LanguagesResponse>('/api/coding/languages'),
   tags: () => api.get<{ tags: string[] }>('/api/coding/tags').then((r) => r.tags),
   problems: (q: ProblemQuery) => api.get<Paginated<ProblemSummary>>('/api/coding/problems', { ...q }),
+  recommended: () => api.get<RecommendedProblem>('/api/coding/problems/recommended'),
   problem: (idOrSlug: string) => api.get<{ problem: Problem }>(`/api/coding/problems/${encodeURIComponent(idOrSlug)}`).then((r) => r.problem),
   submit: (body: { problemId: string; language: CodeLanguage; code: string; kind: 'run' | 'submit' }) =>
     api.post<{ submission: Submission }>('/api/coding/submissions', body).then((r) => r.submission),

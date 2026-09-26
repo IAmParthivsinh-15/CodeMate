@@ -10,6 +10,39 @@ import { notifyUser } from "../../sockets/notify.js";
 
 export const MAX_HINT_CREDITS = 5;
 
+// Problem difficulty uses the chess level names; a player's rating picks the
+// level with the same Elo bands as the bots (see infrastructure/stockfish DIFFICULTY).
+export const DIFFICULTY_ORDER = ["beginner", "intermediate", "advanced", "master", "grandmaster", "legendary"];
+export function difficultyForRating(rating = 800) {
+  if (rating < 1250) return "beginner";
+  if (rating < 1650) return "intermediate";
+  if (rating < 1950) return "advanced";
+  if (rating < 2250) return "master";
+  if (rating < 2550) return "grandmaster";
+  return "legendary";
+}
+
+/**
+ * "Earn a hint": an unsolved problem at the player's level. Only a first
+ * solve earns a credit, so solved problems are skipped. If the level has
+ * nothing left, try the nearest easier levels first, then harder ones.
+ */
+export async function recommendProblem(user) {
+  const target = difficultyForRating(user.chessStats?.rating);
+  const solved = await Submission.distinct("problem", { user: user._id, status: "accepted", kind: "submit" });
+  const t = DIFFICULTY_ORDER.indexOf(target);
+  const easier = DIFFICULTY_ORDER.slice(0, t).reverse();
+  const harder = DIFFICULTY_ORDER.slice(t + 1);
+  for (const difficulty of [target, ...easier, ...harder]) {
+    const filter = { difficulty, published: { $ne: false }, _id: { $nin: solved } };
+    const count = await CodingQuestion.countDocuments(filter);
+    if (!count) continue;
+    const [q] = await CodingQuestion.find(filter).select("title slug difficulty tags").skip(Math.floor(Math.random() * count)).limit(1).lean();
+    return { problem: q, targetDifficulty: difficulty, ratingDifficulty: target, rating: user.chessStats?.rating ?? 800 };
+  }
+  return { problem: null, ratingDifficulty: target, rating: user.chessStats?.rating ?? 800 };
+}
+
 // Status precedence when tests disagree: the first non-accepted status wins,
 // with compilation errors reported over everything else.
 const summarise = (results) => {

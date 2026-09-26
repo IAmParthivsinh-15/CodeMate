@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
+import { useEarnHint } from '../coding/useEarnHint'
 import { useState } from 'react'
-import { Link } from 'react-router'
 import { Badge } from '../../components/ui/Badge'
 import { Button, ButtonLink } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
@@ -55,6 +55,7 @@ export function RestGameView({ game, moves, thinking, busy, onMove, runAction, o
   const myTurn = active && !thinking && (isAi ? game.turn === game.yourColor : true)
   const movable = replay.isLatest && myTurn ? (isAi ? (game.yourColor ?? 'none') : 'both') : 'none'
   const hintCredits = user?.hintCredits ?? 0
+  const { earnHint, loading: earningHint } = useEarnHint()
   const showHint = hint && hint.ply === game.ply && replay.isLatest ? hint : null
 
   const requestHint = async () => {
@@ -171,17 +172,17 @@ export function RestGameView({ game, moves, thinking, busy, onMove, runAction, o
                   💡 Hint <span className="text-xs text-muted">({hintCredits})</span>
                 </Button>
               ) : (
-                <Tooltip content="Solve a coding problem to earn hints">
-                  <Button variant="secondary" size="sm" aria-disabled="true" className="cursor-not-allowed">
-                    💡 Hint (0)
+                <Tooltip content="No hints left: solve a coding problem at your level to earn one, then come straight back">
+                  <Button variant="secondary" size="sm" onClick={earnHint} loading={earningHint}>
+                    💡 Earn a hint
                   </Button>
                 </Tooltip>
               )
             )}
-            {isAi && active && hintCredits === 0 && (
-              <Link to="/coding" className="self-center text-xs font-medium text-primary hover:underline">
-                Earn hints →
-              </Link>
+            {isAi && active && hintCredits > 0 && (
+              <button type="button" onClick={earnHint} disabled={earningHint} className="self-center text-xs font-medium text-primary hover:underline disabled:opacity-60">
+                Earn more →
+              </button>
             )}
             {!isAi && active && (
               <Button variant="secondary" size="sm" onClick={() => setConfirm('draw')} disabled={!!busy}>

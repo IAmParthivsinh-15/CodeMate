@@ -6,7 +6,7 @@ import { protectRoutes } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 import { limiters } from "../../middleware/rateLimit.js";
 import { LANGUAGES, LANGUAGE_KEYS, judge0 } from "../../infrastructure/judge0/codeExecutor.js";
-import { createSubmission, findProblem, problemView, submissionView } from "./coding.service.js";
+import { createSubmission, findProblem, problemView, submissionView, recommendProblem } from "./coding.service.js";
 import { objectId } from "../games/game.schema.js";
 import { ok, parsePagination, paginated } from "../../shared/http.js";
 import { notFound } from "../../shared/errors.js";
@@ -44,6 +44,9 @@ router.get("/problems", validate({ query: listQuery }), async (req, res) => {
   const solved = new Set(solvedIds.map(String));
   ok(res, paginated(items.map((p) => ({ ...p, solved: solved.has(String(p._id)) })), total, page));
 });
+
+// A problem to solve for a hint, matched to the player's chess rating.
+router.get("/problems/recommended", async (req, res) => ok(res, await recommendProblem(req.user)));
 
 router.get("/tags", async (req, res) => ok(res, { tags: (await CodingQuestion.distinct("tags")).sort() }));
 

@@ -6,6 +6,7 @@ import CodeMirror from '@uiw/react-codemirror'
 import { useMemo } from 'react'
 import { useTheme } from '../../app/themeContext'
 import type { CodeLanguage } from '../../types/api'
+import { cn } from '../../utils/cn'
 
 const EXTENSIONS: Record<CodeLanguage, () => ReturnType<typeof javascript>> = {
   javascript: () => javascript(),
@@ -18,25 +19,28 @@ interface CodeEditorProps {
   value: string
   onChange: (v: string) => void
   language: CodeLanguage
+  /** CSS height; "100%" fills the parent (the parent needs a height). */
   height?: string
   readOnly?: boolean
   ariaLabel?: string
+  className?: string
 }
 
 /** CodeMirror 6 editor (bundled, no CDN) with language highlighting and the app theme. */
-export function CodeEditor({ value, onChange, language, height = '420px', readOnly, ariaLabel = 'Code editor' }: CodeEditorProps) {
+export function CodeEditor({ value, onChange, language, height = '420px', readOnly, ariaLabel = 'Code editor', className }: CodeEditorProps) {
   const { resolved } = useTheme()
   const extensions = useMemo(() => [EXTENSIONS[language]()], [language])
   return (
-    <div className="overflow-hidden rounded-lg border border-line text-sm" aria-label={ariaLabel}>
+    <div className={cn('overflow-hidden rounded-lg border border-line text-sm', className)} aria-label={ariaLabel}>
       <CodeMirror
+        className="h-full"
         value={value}
         onChange={onChange}
         height={height}
         theme={resolved}
         extensions={extensions}
         readOnly={readOnly}
-        basicSetup={{ lineNumbers: true, foldGutter: true, highlightActiveLine: true, autocompletion: true, tabSize: 4 }}
+        basicSetup={{ lineNumbers: true, foldGutter: true, highlightActiveLine: true, autocompletion: true, bracketMatching: true, closeBrackets: true, indentOnInput: true, tabSize: 4 }}
       />
     </div>
   )

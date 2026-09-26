@@ -160,6 +160,8 @@ function UserMenu() {
 export function AppShell() {
   const [drawer, setDrawer] = useState(false)
   const location = useLocation()
+  // The coding workspace (/coding/:problemId) uses the full window width, like an IDE.
+  const workspace = /^\/coding\/(?!submissions$)[^/]+$/.test(location.pathname)
 
   // Close the drawer on navigation.
   const [lastPath, setLastPath] = useState(location.pathname)
@@ -239,7 +241,7 @@ export function AppShell() {
         <UserMenu />
       </header>
 
-      <main id="main" className="mx-auto w-full max-w-7xl px-3 py-5 sm:px-5 lg:px-8 lg:py-8">
+      <main id="main" className={workspace ? 'w-full px-2 py-2 lg:px-3' : 'mx-auto w-full max-w-7xl px-3 py-5 sm:px-5 lg:px-8 lg:py-8'}>
         <Outlet />
       </main>
     </div>

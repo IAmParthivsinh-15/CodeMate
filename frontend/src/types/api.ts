@@ -463,6 +463,14 @@ export interface ProblemSummary {
   solved: boolean
 }
 
+/** GET /api/coding/problems/recommended: an unsolved problem at the player's rating level. */
+export interface RecommendedProblem {
+  problem: Pick<ProblemSummary, '_id' | 'title' | 'slug' | 'difficulty' | 'tags'> | null
+  targetDifficulty?: string
+  ratingDifficulty: string
+  rating: number
+}
+
 export interface Problem extends ProblemSummary {
   statement: string
   inputFormat?: string

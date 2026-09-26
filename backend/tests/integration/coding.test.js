@@ -75,6 +75,15 @@ describe("coding platform (spec §29-30)", () => {
     expect(u.codingStats).toMatchObject({ problemsSolved: 1, accepted: 2, submissions: 2 });
   });
 
+  it("recommends an unsolved problem at the player's rating level", async () => {
+    const { auth } = await registerUser(t.api); // new users are rated 800 → beginner
+    const rec = await t.api().get("/api/coding/problems/recommended").set(auth);
+    expect(rec.body).toMatchObject({ ratingDifficulty: "beginner", problem: { slug: "array-sum" } });
+    const sub = await t.api().post("/api/coding/submissions").set(auth).send({ problemId: "array-sum", language: "python", code: "# CORRECT" });
+    await eventually(async () => (await t.api().get(`/api/coding/submissions/${sub.body.submission._id}`).set(auth)).body.submission.status === "accepted");
+    expect((await t.api().get("/api/coding/problems/recommended").set(auth)).body.problem).toBeNull(); // nothing unsolved left
+  });
+
   it("reports wrong answers and compilation errors", async () => {
     const { auth } = await registerUser(t.api);
     const wrong = await t.api().post("/api/coding/submissions").set(auth).send({ problemId: "array-sum", language: "javascript", code: "console.log(0)" });
