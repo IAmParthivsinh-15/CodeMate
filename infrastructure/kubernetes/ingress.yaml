@@ -1,0 +1,26 @@
+# ingress-nginx. Everything goes through the frontend's nginx, which routes
+# /api and /socket.io in-cluster; cookie affinity keeps Socket.IO's polling
+# fallback on one realtime pod (WebSocket-only clients don't need it).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: codemate
+  namespace: codemate
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: codemate-route
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [codemate.example.com]
+      secretName: codemate-tls
+  rules:
+    - host: codemate.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: frontend, port: { name: http } } }

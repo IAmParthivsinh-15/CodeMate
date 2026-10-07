@@ -1,0 +1,17 @@
+# kubectl apply -k infrastructure/kubernetes
+# (create the Secret first from secret.example.yaml; it is intentionally not listed here)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: codemate
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - backend.yaml
+  - workers.yaml
+  - frontend.yaml
+  - ingress.yaml
+images:
+  - name: parthivsinhv/codemate-backend
+    newTag: latest
+  - name: parthivsinhv/codemate-frontend
+    newTag: latest
